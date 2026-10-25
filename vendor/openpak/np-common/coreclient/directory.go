@@ -2,7 +2,7 @@ package coreclient
 
 import (
 	"context"
-	accountv1 "openpak/np-common/accountpb"
+	accountv1 "github.com/openpak/account-api/openpak/account/v1"
 )
 
 func (c *Client) AccountPage(ctx context.Context, after string) ([]*Account, string, error) {

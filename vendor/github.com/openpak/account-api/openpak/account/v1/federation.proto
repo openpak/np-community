@@ -1,0 +1,298 @@
+syntax = "proto3";
+
+package openpak.account.v1;
+
+option go_package = "github.com/openpak/account-api/openpak/account/v1;accountv1";
+
+// Region nodes. A node is a relay tier (Photon GameServer, NPLN relay, TURN)
+// that announces its addresses; the matchmaking servers at home hand those
+// addresses out per room, so a joiner lands wherever the host's room lives.
+// Accounts, friends and matchmaking never leave home.
+//
+// A node is one region, one operator and one approval, running on one or
+// more servers. The node key only enrols servers; each server gets its own
+// key and announces on its own. A node is handed out ("in rotation") only
+// while it is approved and every one of its servers reports, and the node
+// meets the Requirements (see GetRequirements). Reports are self-declared:
+// they gate rotation and nothing else.
+service Federation {
+  // Called by the website on behalf of an admin. Returns the node's key
+  // exactly once; the core keeps only its hash.
+  rpc CreateNode(CreateNodeRequest) returns (CreateNodeResponse);
+  // Home only: replaces a node's enrolment key. Joined servers keep theirs.
+  rpc RotateNodeKey(RotateNodeKeyRequest) returns (CreateNodeResponse);
+  // Called with a node key: enrols one server and returns its own key, once.
+  // Joining the same name again replaces that server's key.
+  rpc JoinServer(JoinServerRequest) returns (JoinServerResponse);
+  // Home only: removes one server; its key stops working at once.
+  rpc RevokeServer(RevokeServerRequest) returns (RevokeServerResponse);
+  // Called by a server with its own key, about once a minute. Replaces the
+  // server's advertised roles and hardware report and marks it seen.
+  rpc Announce(AnnounceRequest) returns (AnnounceResponse);
+  // Called with a server key: reserves one timed transfer for the bandwidth
+  // self-test. RESOURCE_EXHAUSTED inside the interval (one per direction per
+  // day by default).
+  rpc StartSelfTest(StartSelfTestRequest) returns (StartSelfTestResponse);
+  // Home only: stores what home measured for a reserved transfer.
+  rpc RecordSelfTest(RecordSelfTestRequest) returns (RecordSelfTestResponse);
+  // Nodes in rotation: approved, reporting and compliant. What the
+  // matchmaking servers and the status page pick from.
+  rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
+  // Every node, approved or not, with its servers and compliance: the admin view.
+  rpc ListAllNodes(ListNodesRequest) returns (ListNodesResponse);
+  // Approving is refused (FAILED_PRECONDITION, naming every shortfall) while
+  // the node is below the minimum. Removing approval always works.
+  rpc SetNodeApproved(SetNodeApprovedRequest) returns (SetNodeApprovedResponse);
+  // Home only: waives the hardware figures for one node (OpenPak's own test
+  // nodes). Approval, liveness, a fresh self-test and a public IPv4 still apply.
+  rpc SetNodeWaiver(SetNodeWaiverRequest) returns (SetNodeWaiverResponse);
+  // The admission figures, from the core's configuration. Any caller.
+  rpc GetRequirements(GetRequirementsRequest) returns (Requirements);
+  // The coverage plan: where OpenPak wants nodes.
+  rpc ListLocations(ListLocationsRequest) returns (ListLocationsResponse);
+  rpc PutLocation(Location) returns (PutLocationResponse);           // home only
+  rpc DeleteLocation(DeleteLocationRequest) returns (DeleteLocationResponse); // home only
+
+  // Home only: flags a test node. A test node is never in ListNodes (the
+  // public list) and is routed only to accounts on the test allow-list.
+  rpc SetNodeTest(SetNodeTestRequest) returns (SetNodeTestResponse);
+  // Home only: the test allow-list.
+  rpc ListTesters(ListTestersRequest) returns (ListTestersResponse);
+  rpc PutTester(PutTesterRequest) returns (PutTesterResponse);
+  rpc DeleteTester(DeleteTesterRequest) returns (DeleteTesterResponse);
+  // Home only: where a new room goes (pkg/routing). Never fails for an
+  // unknown token, country or account: the answer is then home.
+  rpc ResolveRegion(ResolveRegionRequest) returns (ResolveRegionResponse);
+}
+
+message CreateNodeRequest {
+  string node_id = 1;  // slug: [a-z0-9-], 2..32
+  string name = 2;
+  string country = 3;  // ISO 3166-1 alpha-2
+  string region = 4;   // coverage-plan code, e.g. "sa-east"; optional
+}
+
+message CreateNodeResponse {
+  string node_id = 1;
+  string key = 2;      // shown once
+}
+
+message RotateNodeKeyRequest {
+  string node_id = 1;
+}
+
+message JoinServerRequest {
+  string name = 1;     // [a-z0-9-], 1..32, unique within the node
+}
+
+message JoinServerResponse {
+  string server_id = 1; // "<node>/<name>"
+  string key = 2;       // shown once
+}
+
+message RevokeServerRequest {
+  string server_id = 1;
+}
+
+message RevokeServerResponse {}
+
+// What a server says about itself. Self-declared.
+message ServerReport {
+  int32 cores = 1;
+  int64 ram_mb = 2;     // MemTotal, MiB
+  int64 disk_gb = 3;    // data filesystem size, GB
+  bool disk_ssd = 4;    // NVMe or SATA SSD
+  string ipv4 = 5;
+  string ipv6 = 6;
+  int32 port_mbps = 7;  // declared symmetric port speed
+}
+
+message AnnounceRequest {
+  map<string, string> services = 1; // role -> host:port; roles: photon, turn, stun, npln_relay
+  ServerReport report = 2;
+  // The source address home saw. Set by the website relay; a server cannot
+  // reach the core directly.
+  string observed_ip = 3;
+}
+
+message AnnounceResponse {
+  string node_id = 1;
+  bool approved = 2;
+  string server_id = 3;
+  bool in_rotation = 4;
+  repeated string problems = 5; // why the node is out of rotation, if it is
+  bool selftest_due = 6;        // run the bandwidth self-test now
+}
+
+message StartSelfTestRequest {
+  string direction = 1; // "down" (home sends) or "up" (server sends)
+}
+
+message StartSelfTestResponse {
+  string server_id = 1;
+  int64 bytes = 2;      // how many bytes to move
+}
+
+message RecordSelfTestRequest {
+  string server_id = 1;
+  string direction = 2;
+  double mbps = 3;
+  int32 rtt_ms = 4;     // reported by the server; 0 = unknown
+}
+
+message RecordSelfTestResponse {}
+
+message ListNodesRequest {}
+
+message ListNodesResponse {
+  repeated Node nodes = 1;
+}
+
+message Node {
+  string node_id = 1;
+  string name = 2;
+  string country = 3;
+  map<string, string> services = 4; // union of its servers' roles
+  int64 last_seen_unix = 5; // 0 = never; latest of its servers
+  bool approved = 6;
+  string region = 7;
+  bool in_rotation = 8;
+  repeated string problems = 9;
+  // Admin view only (ListAllNodes); never in a public answer.
+  string waiver_reason = 10;
+  int64 waiver_until_unix = 11; // 0 = no expiry
+  bool waived = 12;             // waiver active now
+  repeated Server servers = 13;
+  int32 total_cores = 14;
+  int64 total_ram_mb = 15;
+  int64 total_disk_gb = 16;
+  bool test = 17;               // admin view only; test nodes are never in ListNodes
+}
+
+message Server {
+  string server_id = 1;
+  string name = 2;
+  map<string, string> services = 3;
+  ServerReport report = 4;
+  string observed_ip = 5;
+  int64 last_seen_unix = 6;
+  double down_mbps = 7;
+  int64 down_unix = 8;
+  double up_mbps = 9;
+  int64 up_unix = 10;
+  int32 rtt_ms = 11;
+  repeated string problems = 12;
+}
+
+message SetNodeApprovedRequest {
+  string node_id = 1;
+  bool approved = 2;
+}
+
+message SetNodeApprovedResponse {}
+
+message SetNodeWaiverRequest {
+  string node_id = 1;
+  string reason = 2;       // required to waive; empty clears the waiver
+  int64 until_unix = 3;    // 0 = no expiry
+}
+
+message SetNodeWaiverResponse {}
+
+message GetRequirementsRequest {}
+
+message Requirements {
+  int32 node_cores = 1;
+  int32 node_ram_gb = 2;
+  int32 node_disk_gb = 3;
+  int32 server_cores = 4;
+  int32 server_ram_gb = 5;
+  int32 server_bandwidth_mbps = 6;
+  int32 measured_mbps = 7;
+  double availability_pct = 8;
+  int32 slack_pct = 9;
+  int64 report_stale_seconds = 10;
+  int64 selftest_interval_seconds = 11;
+  int64 selftest_max_age_seconds = 12;
+  int64 selftest_bytes = 13;
+  repeated string roles = 14;
+}
+
+message ListLocationsRequest {}
+
+message ListLocationsResponse {
+  repeated Location locations = 1;
+}
+
+message Location {
+  string code = 1;      // canonical region, e.g. "sa-east"
+  string country = 2;   // ISO 3166-1 alpha-2
+  string city = 3;
+  int32 wanted = 4;
+  string status = 5;    // open | full | closed
+  int32 approved = 6;   // derived; ignored by PutLocation
+  bool accepting = 7;   // derived: open and approved < wanted
+}
+
+message PutLocationResponse {}
+
+message DeleteLocationRequest {
+  string code = 1;
+}
+
+message DeleteLocationResponse {}
+
+message SetNodeTestRequest {
+  string node_id = 1;
+  bool test = 2;
+}
+
+message SetNodeTestResponse {}
+
+message ListTestersRequest {}
+
+message Tester {
+  string account_id = 1;
+  string email = 2;
+  string note = 3;
+  int64 added_unix = 4;
+}
+
+message ListTestersResponse {
+  repeated Tester testers = 1;
+}
+
+message PutTesterRequest {
+  string account = 1;   // account id or sign-in email
+  string note = 2;
+}
+
+message PutTesterResponse {
+  string account_id = 1;
+}
+
+message DeleteTesterRequest {
+  string account_id = 1;
+}
+
+message DeleteTesterResponse {}
+
+message ResolveRegionRequest {
+  string stack = 1;          // photon | amongus | playfab | gcp | npln
+  string token = 2;          // explicit in-game region in the stack's names; "" = none
+  string country = 3;        // "" = the account's, if named
+  string account_id = 4;     // or link_namespace + link_subject
+  string link_namespace = 5;
+  string link_subject = 6;
+  string service = 7;        // node role; "" = the stack's default
+  string key = 8;            // spreads rooms over a region's nodes
+}
+
+message ResolveRegionResponse {
+  string region = 1;
+  string node_id = 2;        // "" = home
+  string address = 3;
+  map<string, string> services = 4;
+  string via = 5;            // explicit | country | fallback | home
+  bool tester = 6;
+}

@@ -2,16 +2,25 @@ syntax = "proto3";
 
 package openpak.account.v1;
 
-option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+option go_package = "github.com/openpak/account-api/openpak/account/v1;accountv1";
 
 // Internal identity contract: narrowly scoped verification and status.
 // Never exposes password hashes or recovery credentials.
 service Identity {
+  // Update only supplied public profile fields; omitted fields remain unchanged.
+  rpc UpdatePublicProfile(UpdatePublicProfileRequest) returns (GetAccountResponse);
   // Home-only operator action, after a deletion request. Not a user rename.
   rpc FinalizeAccountDeletion(RequestAccountDeletionRequest) returns (RequestAccountDeletionResponse);
+  // Home-only: closed accounts whose grace period is over, oldest first. The
+  // erasure finaliser erases each everywhere, then finalizes it.
+  rpc ListDueAccountDeletions(ListDueAccountDeletionsRequest) returns (ListDueAccountDeletionsResponse);
+  // Home-only admin restore: reopens a closed account within its grace period
+  // with the status it had. NotFound, FailedPrecondition (not closed) or
+  // OutOfRange (grace over, erasure started).
+  rpc RestoreAccountDeletion(RequestAccountDeletionRequest) returns (RequestAccountDeletionResponse);
   rpc CheckHandle(CheckHandleRequest) returns (CheckHandleResponse);
   rpc ResolveHandle(ResolveHandleRequest) returns (ResolveHandleResponse);
-  // Home-only legacy migration: one assignment, no rename path.
+  // Home-only migration: one assignment, no rename path.
   rpc ClaimHandle(ClaimHandleRequest) returns (ClaimHandleResponse);
   // Home-only, minimal active-account directory for adapter identity backfills.
   // Keyset cursor is an account ID, not an offset; no emails or credentials.
@@ -26,8 +35,8 @@ service Identity {
   // Store an adapter-domain credential (e.g. a console's transformed
   // password hash). Separate domain from web passwords (FR-1/FR-3).
   rpc SetAdapterCredential(SetAdapterCredentialRequest) returns (SetAdapterCredentialResponse);
-  // Start account deletion (FR-8): disables access immediately, emits
-  // account_delete_started; full cleanup orchestration lands in M3/M4.
+  // Start account deletion (FR-8): closes the account immediately, emits
+  // account_delete_started, and sets the erasure date one grace period away.
   rpc RequestAccountDeletion(RequestAccountDeletionRequest) returns (RequestAccountDeletionResponse);
   // Verify an adapter-domain credential. Never yields a web session.
   rpc VerifyAdapterCredential(VerifyAdapterCredentialRequest) returns (VerifyAdapterCredentialResponse);
@@ -98,6 +107,9 @@ message GetAccountRequest { string account_id = 1; }
 
 message GetAccountResponse {
   string handle = 9;
+  string bio = 10;
+  string motto = 11;
+  uint64 profile_version = 12;
   string account_id = 1;
   AccountStatus status = 2;
   bool email_verified = 3;
@@ -108,6 +120,9 @@ message GetAccountResponse {
   // The sign-in address, for an adapter whose console protocol carries it (a Nintendo Account's
   // users/me has the address and a masked form of it). Never logged by an adapter.
   string email = 8;
+  // Set while the account is closed (DELETION_PENDING): when it will be erased
+  // unless restored.
+  int64 erase_after_unix = 13;
 }
 
 message SetAdapterCredentialRequest {
@@ -126,6 +141,14 @@ message RequestAccountDeletionRequest {
 }
 
 message RequestAccountDeletionResponse {}
+
+message ListDueAccountDeletionsRequest {
+  int32 limit = 1; // default and cap 100
+}
+
+message ListDueAccountDeletionsResponse {
+  repeated string account_ids = 1;
+}
 
 message VerifyAdapterCredentialRequest {
   string caller_namespace = 1;
@@ -283,3 +306,11 @@ message ResolveHandleRequest { string handle = 1; }
 message ResolveHandleResponse { string account_id = 1; }
 message ClaimHandleRequest { string account_id = 1; string handle = 2; }
 message ClaimHandleResponse {}
+
+message UpdatePublicProfileRequest {
+  string account_id = 1;
+  optional string display_name = 2;
+  optional string country = 3;
+  optional string bio = 4;
+  optional string motto = 5;
+}

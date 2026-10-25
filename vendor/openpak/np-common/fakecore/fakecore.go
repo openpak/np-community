@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
-	accountv1 "openpak/np-common/accountpb"
+	accountv1 "github.com/openpak/account-api/openpak/account/v1"
 )
 
 // Account is a fake core account.

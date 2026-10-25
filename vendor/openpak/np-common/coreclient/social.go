@@ -2,7 +2,7 @@ package coreclient
 
 import (
 	"context"
-	accountv1 "openpak/np-common/accountpb"
+	accountv1 "github.com/openpak/account-api/openpak/account/v1"
 )
 
 // Social uses the canonical core graph. No relationship is stored in the adapter.

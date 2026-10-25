@@ -362,7 +362,7 @@ const file_openpak_account_v1_media_proto_rawDesc = "" +
 	"\x05Media\x12X\n" +
 	"\tPutAvatar\x12$.openpak.account.v1.PutAvatarRequest\x1a%.openpak.account.v1.PutAvatarResponse\x12X\n" +
 	"\tGetAvatar\x12$.openpak.account.v1.GetAvatarRequest\x1a%.openpak.account.v1.GetAvatarResponse\x12a\n" +
-	"\fDeleteAvatar\x12'.openpak.account.v1.DeleteAvatarRequest\x1a(.openpak.account.v1.DeleteAvatarResponseB4Z2openpak/account/proto/openpak/account/v1;accountv1b\x06proto3"
+	"\fDeleteAvatar\x12'.openpak.account.v1.DeleteAvatarRequest\x1a(.openpak.account.v1.DeleteAvatarResponseB=Z;github.com/openpak/account-api/openpak/account/v1;accountv1b\x06proto3"
 
 var (
 	file_openpak_account_v1_media_proto_rawDescOnce sync.Once

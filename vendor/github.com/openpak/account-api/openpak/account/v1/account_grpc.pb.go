@@ -19,7 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	Identity_UpdatePublicProfile_FullMethodName     = "/openpak.account.v1.Identity/UpdatePublicProfile"
 	Identity_FinalizeAccountDeletion_FullMethodName = "/openpak.account.v1.Identity/FinalizeAccountDeletion"
+	Identity_ListDueAccountDeletions_FullMethodName = "/openpak.account.v1.Identity/ListDueAccountDeletions"
+	Identity_RestoreAccountDeletion_FullMethodName  = "/openpak.account.v1.Identity/RestoreAccountDeletion"
 	Identity_CheckHandle_FullMethodName             = "/openpak.account.v1.Identity/CheckHandle"
 	Identity_ResolveHandle_FullMethodName           = "/openpak.account.v1.Identity/ResolveHandle"
 	Identity_ClaimHandle_FullMethodName             = "/openpak.account.v1.Identity/ClaimHandle"
@@ -40,11 +43,20 @@ const (
 // Internal identity contract: narrowly scoped verification and status.
 // Never exposes password hashes or recovery credentials.
 type IdentityClient interface {
+	// Update only supplied public profile fields; omitted fields remain unchanged.
+	UpdatePublicProfile(ctx context.Context, in *UpdatePublicProfileRequest, opts ...grpc.CallOption) (*GetAccountResponse, error)
 	// Home-only operator action, after a deletion request. Not a user rename.
 	FinalizeAccountDeletion(ctx context.Context, in *RequestAccountDeletionRequest, opts ...grpc.CallOption) (*RequestAccountDeletionResponse, error)
+	// Home-only: closed accounts whose grace period is over, oldest first. The
+	// erasure finaliser erases each everywhere, then finalizes it.
+	ListDueAccountDeletions(ctx context.Context, in *ListDueAccountDeletionsRequest, opts ...grpc.CallOption) (*ListDueAccountDeletionsResponse, error)
+	// Home-only admin restore: reopens a closed account within its grace period
+	// with the status it had. NotFound, FailedPrecondition (not closed) or
+	// OutOfRange (grace over, erasure started).
+	RestoreAccountDeletion(ctx context.Context, in *RequestAccountDeletionRequest, opts ...grpc.CallOption) (*RequestAccountDeletionResponse, error)
 	CheckHandle(ctx context.Context, in *CheckHandleRequest, opts ...grpc.CallOption) (*CheckHandleResponse, error)
 	ResolveHandle(ctx context.Context, in *ResolveHandleRequest, opts ...grpc.CallOption) (*ResolveHandleResponse, error)
-	// Home-only legacy migration: one assignment, no rename path.
+	// Home-only migration: one assignment, no rename path.
 	ClaimHandle(ctx context.Context, in *ClaimHandleRequest, opts ...grpc.CallOption) (*ClaimHandleResponse, error)
 	// Home-only, minimal active-account directory for adapter identity backfills.
 	// Keyset cursor is an account ID, not an offset; no emails or credentials.
@@ -59,8 +71,8 @@ type IdentityClient interface {
 	// Store an adapter-domain credential (e.g. a console's transformed
 	// password hash). Separate domain from web passwords (FR-1/FR-3).
 	SetAdapterCredential(ctx context.Context, in *SetAdapterCredentialRequest, opts ...grpc.CallOption) (*SetAdapterCredentialResponse, error)
-	// Start account deletion (FR-8): disables access immediately, emits
-	// account_delete_started; full cleanup orchestration lands in M3/M4.
+	// Start account deletion (FR-8): closes the account immediately, emits
+	// account_delete_started, and sets the erasure date one grace period away.
 	RequestAccountDeletion(ctx context.Context, in *RequestAccountDeletionRequest, opts ...grpc.CallOption) (*RequestAccountDeletionResponse, error)
 	// Verify an adapter-domain credential. Never yields a web session.
 	VerifyAdapterCredential(ctx context.Context, in *VerifyAdapterCredentialRequest, opts ...grpc.CallOption) (*VerifyAdapterCredentialResponse, error)
@@ -82,10 +94,40 @@ func NewIdentityClient(cc grpc.ClientConnInterface) IdentityClient {
 	return &identityClient{cc}
 }
 
+func (c *identityClient) UpdatePublicProfile(ctx context.Context, in *UpdatePublicProfileRequest, opts ...grpc.CallOption) (*GetAccountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAccountResponse)
+	err := c.cc.Invoke(ctx, Identity_UpdatePublicProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *identityClient) FinalizeAccountDeletion(ctx context.Context, in *RequestAccountDeletionRequest, opts ...grpc.CallOption) (*RequestAccountDeletionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RequestAccountDeletionResponse)
 	err := c.cc.Invoke(ctx, Identity_FinalizeAccountDeletion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityClient) ListDueAccountDeletions(ctx context.Context, in *ListDueAccountDeletionsRequest, opts ...grpc.CallOption) (*ListDueAccountDeletionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDueAccountDeletionsResponse)
+	err := c.cc.Invoke(ctx, Identity_ListDueAccountDeletions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *identityClient) RestoreAccountDeletion(ctx context.Context, in *RequestAccountDeletionRequest, opts ...grpc.CallOption) (*RequestAccountDeletionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RequestAccountDeletionResponse)
+	err := c.cc.Invoke(ctx, Identity_RestoreAccountDeletion_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -209,11 +251,20 @@ func (c *identityClient) VerifySecondFactor(ctx context.Context, in *VerifySecon
 // Internal identity contract: narrowly scoped verification and status.
 // Never exposes password hashes or recovery credentials.
 type IdentityServer interface {
+	// Update only supplied public profile fields; omitted fields remain unchanged.
+	UpdatePublicProfile(context.Context, *UpdatePublicProfileRequest) (*GetAccountResponse, error)
 	// Home-only operator action, after a deletion request. Not a user rename.
 	FinalizeAccountDeletion(context.Context, *RequestAccountDeletionRequest) (*RequestAccountDeletionResponse, error)
+	// Home-only: closed accounts whose grace period is over, oldest first. The
+	// erasure finaliser erases each everywhere, then finalizes it.
+	ListDueAccountDeletions(context.Context, *ListDueAccountDeletionsRequest) (*ListDueAccountDeletionsResponse, error)
+	// Home-only admin restore: reopens a closed account within its grace period
+	// with the status it had. NotFound, FailedPrecondition (not closed) or
+	// OutOfRange (grace over, erasure started).
+	RestoreAccountDeletion(context.Context, *RequestAccountDeletionRequest) (*RequestAccountDeletionResponse, error)
 	CheckHandle(context.Context, *CheckHandleRequest) (*CheckHandleResponse, error)
 	ResolveHandle(context.Context, *ResolveHandleRequest) (*ResolveHandleResponse, error)
-	// Home-only legacy migration: one assignment, no rename path.
+	// Home-only migration: one assignment, no rename path.
 	ClaimHandle(context.Context, *ClaimHandleRequest) (*ClaimHandleResponse, error)
 	// Home-only, minimal active-account directory for adapter identity backfills.
 	// Keyset cursor is an account ID, not an offset; no emails or credentials.
@@ -228,8 +279,8 @@ type IdentityServer interface {
 	// Store an adapter-domain credential (e.g. a console's transformed
 	// password hash). Separate domain from web passwords (FR-1/FR-3).
 	SetAdapterCredential(context.Context, *SetAdapterCredentialRequest) (*SetAdapterCredentialResponse, error)
-	// Start account deletion (FR-8): disables access immediately, emits
-	// account_delete_started; full cleanup orchestration lands in M3/M4.
+	// Start account deletion (FR-8): closes the account immediately, emits
+	// account_delete_started, and sets the erasure date one grace period away.
 	RequestAccountDeletion(context.Context, *RequestAccountDeletionRequest) (*RequestAccountDeletionResponse, error)
 	// Verify an adapter-domain credential. Never yields a web session.
 	VerifyAdapterCredential(context.Context, *VerifyAdapterCredentialRequest) (*VerifyAdapterCredentialResponse, error)
@@ -251,8 +302,17 @@ type IdentityServer interface {
 // pointer dereference when methods are called.
 type UnimplementedIdentityServer struct{}
 
+func (UnimplementedIdentityServer) UpdatePublicProfile(context.Context, *UpdatePublicProfileRequest) (*GetAccountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdatePublicProfile not implemented")
+}
 func (UnimplementedIdentityServer) FinalizeAccountDeletion(context.Context, *RequestAccountDeletionRequest) (*RequestAccountDeletionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method FinalizeAccountDeletion not implemented")
+}
+func (UnimplementedIdentityServer) ListDueAccountDeletions(context.Context, *ListDueAccountDeletionsRequest) (*ListDueAccountDeletionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDueAccountDeletions not implemented")
+}
+func (UnimplementedIdentityServer) RestoreAccountDeletion(context.Context, *RequestAccountDeletionRequest) (*RequestAccountDeletionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RestoreAccountDeletion not implemented")
 }
 func (UnimplementedIdentityServer) CheckHandle(context.Context, *CheckHandleRequest) (*CheckHandleResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CheckHandle not implemented")
@@ -308,6 +368,24 @@ func RegisterIdentityServer(s grpc.ServiceRegistrar, srv IdentityServer) {
 	s.RegisterService(&Identity_ServiceDesc, srv)
 }
 
+func _Identity_UpdatePublicProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePublicProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServer).UpdatePublicProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Identity_UpdatePublicProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServer).UpdatePublicProfile(ctx, req.(*UpdatePublicProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Identity_FinalizeAccountDeletion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RequestAccountDeletionRequest)
 	if err := dec(in); err != nil {
@@ -322,6 +400,42 @@ func _Identity_FinalizeAccountDeletion_Handler(srv interface{}, ctx context.Cont
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(IdentityServer).FinalizeAccountDeletion(ctx, req.(*RequestAccountDeletionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Identity_ListDueAccountDeletions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDueAccountDeletionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServer).ListDueAccountDeletions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Identity_ListDueAccountDeletions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServer).ListDueAccountDeletions(ctx, req.(*ListDueAccountDeletionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Identity_RestoreAccountDeletion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RequestAccountDeletionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IdentityServer).RestoreAccountDeletion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Identity_RestoreAccountDeletion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IdentityServer).RestoreAccountDeletion(ctx, req.(*RequestAccountDeletionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -532,8 +646,20 @@ var Identity_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*IdentityServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "UpdatePublicProfile",
+			Handler:    _Identity_UpdatePublicProfile_Handler,
+		},
+		{
 			MethodName: "FinalizeAccountDeletion",
 			Handler:    _Identity_FinalizeAccountDeletion_Handler,
+		},
+		{
+			MethodName: "ListDueAccountDeletions",
+			Handler:    _Identity_ListDueAccountDeletions_Handler,
+		},
+		{
+			MethodName: "RestoreAccountDeletion",
+			Handler:    _Identity_RestoreAccountDeletion_Handler,
 		},
 		{
 			MethodName: "CheckHandle",

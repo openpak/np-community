@@ -285,7 +285,7 @@ type InvalidationEvent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Version       uint64                 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	EventId       string                 `protobuf:"bytes,2,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"` // stable ID for dedup
-	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`                      // account_banned | account_unbanned | link_unlinked | account_delete_started | account_deleted | credential_revoked | friend_requested | friend_accepted | friend_removed | invitation_sent | message | email_changed (account = who must hear it, subject = the other party or, for message, the chat message id; email_changed has no subject: re-read the account)
+	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`                      // account_banned | account_unbanned | link_unlinked | account_delete_started | account_deleted | credential_revoked | friend_requested | friend_accepted | friend_removed | invitation_sent | message | email_changed | presence_changed (account = who must hear it, subject = the other party or, for message, the chat message id; presence_changed: account = a friend online on `namespace`, subject = whose presence moved; email_changed has no subject: re-read the account)
 	AccountId     string                 `protobuf:"bytes,4,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
 	Namespace     string                 `protobuf:"bytes,5,opt,name=namespace,proto3" json:"namespace,omitempty"`                  // set when scoped to one adapter link
 	SubjectId     string                 `protobuf:"bytes,6,opt,name=subject_id,json=subjectId,proto3" json:"subject_id,omitempty"` // set when scoped to one adapter link
@@ -410,7 +410,7 @@ const file_openpak_account_v1_events_proto_rawDesc = "" +
 	"\n" +
 	"PollEvents\x12%.openpak.account.v1.PollEventsRequest\x1a&.openpak.account.v1.PollEventsResponse\x12t\n" +
 	"\x16SubscribeAccountEvents\x121.openpak.account.v1.SubscribeAccountEventsRequest\x1a%.openpak.account.v1.InvalidationEvent0\x01\x12X\n" +
-	"\tEmitEvent\x12$.openpak.account.v1.EmitEventRequest\x1a%.openpak.account.v1.EmitEventResponseB4Z2openpak/account/proto/openpak/account/v1;accountv1b\x06proto3"
+	"\tEmitEvent\x12$.openpak.account.v1.EmitEventRequest\x1a%.openpak.account.v1.EmitEventResponseB=Z;github.com/openpak/account-api/openpak/account/v1;accountv1b\x06proto3"
 
 var (
 	file_openpak_account_v1_events_proto_rawDescOnce sync.Once

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package openpak.account.v1;
 
-option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+option go_package = "github.com/openpak/account-api/openpak/account/v1;accountv1";
 
 // Console adapters delegate account creation to the core (PRD FR-1).
 service Registration {

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package openpak.account.v1;
 
-option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+option go_package = "github.com/openpak/account-api/openpak/account/v1;accountv1";
 
 // Live-session registry and core-routed invitations (PRD SW-06/SW-07).
 // Adapters register sessions with short leases; the core routes invitations
@@ -30,6 +30,10 @@ service Sessions {
   // finished session plus the live ones. The website marks a title tested on a
   // console or emulator from this. Aggregates only, no accounts.
   rpc GetPlaytime(GetPlaytimeRequest) returns (GetPlaytimeResponse);
+  // One account's play history in a namespace: per title, how many sessions, how long, and when it
+  // was first and last played, newest first. What a console's friend page lists as "Play Activity"
+  // (the console never publishes it; the server computes it). Finished sessions plus the live one.
+  rpc GetPlayHistory(GetPlayHistoryRequest) returns (GetPlayHistoryResponse);
   // A game server (through nx-baas or nn-account, at the player's login) saying
   // these players reached it. Their live titled presence session in that
   // namespace counts playtime from the first such mark until it ends; a session
@@ -224,6 +228,24 @@ message PlaytimeTally {
   int64 total_seconds = 5;   // every session added up
   int64 longest_seconds = 6; // the longest single session
   int32 sessions = 7;
+}
+
+message GetPlayHistoryRequest {
+  string account_id = 1;
+  string namespace = 2;
+  int32 limit = 3; // default and maximum 20: a console keeps no more
+}
+
+message GetPlayHistoryResponse {
+  repeated PlayHistoryEntry entries = 1;
+}
+
+message PlayHistoryEntry {
+  string title_id = 1;
+  int32 sessions = 2;
+  int64 total_seconds = 3;
+  int64 first_played_unix = 4;
+  int64 last_played_unix = 5;
 }
 
 message GetPlayerCountsRequest {}

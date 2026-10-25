@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package openpak.account.v1;
 
-option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+option go_package = "github.com/openpak/account-api/openpak/account/v1;accountv1";
 
 // Durable invalidation events (PRD §7): consumers poll and process with
 // deduplication. Versions are monotonic per event stream.
@@ -49,7 +49,7 @@ message PollEventsResponse {
 message InvalidationEvent {
   uint64 version = 1;
   string event_id = 2;      // stable ID for dedup
-  string type = 3;          // account_banned | account_unbanned | link_unlinked | account_delete_started | account_deleted | credential_revoked | friend_requested | friend_accepted | friend_removed | invitation_sent | message | email_changed (account = who must hear it, subject = the other party or, for message, the chat message id; email_changed has no subject: re-read the account)
+  string type = 3;          // account_banned | account_unbanned | link_unlinked | account_delete_started | account_deleted | credential_revoked | friend_requested | friend_accepted | friend_removed | invitation_sent | message | email_changed | presence_changed (account = who must hear it, subject = the other party or, for message, the chat message id; presence_changed: account = a friend online on `namespace`, subject = whose presence moved; email_changed has no subject: re-read the account)
   string account_id = 4;
   string namespace = 5;     // set when scoped to one adapter link
   string subject_id = 6;    // set when scoped to one adapter link

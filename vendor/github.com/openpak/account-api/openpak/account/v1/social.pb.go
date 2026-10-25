@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.12
 // 	protoc        v7.36.1
-// source: social.proto
+// source: openpak/account/v1/social.proto
 
 package accountv1
 
@@ -66,11 +66,11 @@ func (x Relationship) String() string {
 }
 
 func (Relationship) Descriptor() protoreflect.EnumDescriptor {
-	return file_social_proto_enumTypes[0].Descriptor()
+	return file_openpak_account_v1_social_proto_enumTypes[0].Descriptor()
 }
 
 func (Relationship) Type() protoreflect.EnumType {
-	return &file_social_proto_enumTypes[0]
+	return &file_openpak_account_v1_social_proto_enumTypes[0]
 }
 
 func (x Relationship) Number() protoreflect.EnumNumber {
@@ -79,7 +79,7 @@ func (x Relationship) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Relationship.Descriptor instead.
 func (Relationship) EnumDescriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{0}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{0}
 }
 
 type InteractionKind int32
@@ -118,11 +118,11 @@ func (x InteractionKind) String() string {
 }
 
 func (InteractionKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_social_proto_enumTypes[1].Descriptor()
+	return file_openpak_account_v1_social_proto_enumTypes[1].Descriptor()
 }
 
 func (InteractionKind) Type() protoreflect.EnumType {
-	return &file_social_proto_enumTypes[1]
+	return &file_openpak_account_v1_social_proto_enumTypes[1]
 }
 
 func (x InteractionKind) Number() protoreflect.EnumNumber {
@@ -131,7 +131,7 @@ func (x InteractionKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use InteractionKind.Descriptor instead.
 func (InteractionKind) EnumDescriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{1}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{1}
 }
 
 type DenialReason int32
@@ -176,11 +176,11 @@ func (x DenialReason) String() string {
 }
 
 func (DenialReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_social_proto_enumTypes[2].Descriptor()
+	return file_openpak_account_v1_social_proto_enumTypes[2].Descriptor()
 }
 
 func (DenialReason) Type() protoreflect.EnumType {
-	return &file_social_proto_enumTypes[2]
+	return &file_openpak_account_v1_social_proto_enumTypes[2]
 }
 
 func (x DenialReason) Number() protoreflect.EnumNumber {
@@ -189,7 +189,7 @@ func (x DenialReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DenialReason.Descriptor instead.
 func (DenialReason) EnumDescriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{2}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{2}
 }
 
 type FriendState int32
@@ -225,11 +225,11 @@ func (x FriendState) String() string {
 }
 
 func (FriendState) Descriptor() protoreflect.EnumDescriptor {
-	return file_social_proto_enumTypes[3].Descriptor()
+	return file_openpak_account_v1_social_proto_enumTypes[3].Descriptor()
 }
 
 func (FriendState) Type() protoreflect.EnumType {
-	return &file_social_proto_enumTypes[3]
+	return &file_openpak_account_v1_social_proto_enumTypes[3]
 }
 
 func (x FriendState) Number() protoreflect.EnumNumber {
@@ -238,7 +238,7 @@ func (x FriendState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FriendState.Descriptor instead.
 func (FriendState) EnumDescriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{3}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{3}
 }
 
 type RequestFriendRequest struct {
@@ -252,7 +252,7 @@ type RequestFriendRequest struct {
 
 func (x *RequestFriendRequest) Reset() {
 	*x = RequestFriendRequest{}
-	mi := &file_social_proto_msgTypes[0]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -264,7 +264,7 @@ func (x *RequestFriendRequest) String() string {
 func (*RequestFriendRequest) ProtoMessage() {}
 
 func (x *RequestFriendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[0]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +277,7 @@ func (x *RequestFriendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestFriendRequest.ProtoReflect.Descriptor instead.
 func (*RequestFriendRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{0}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *RequestFriendRequest) GetRequesterId() string {
@@ -311,7 +311,7 @@ type RequestFriendResponse struct {
 
 func (x *RequestFriendResponse) Reset() {
 	*x = RequestFriendResponse{}
-	mi := &file_social_proto_msgTypes[1]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -323,7 +323,7 @@ func (x *RequestFriendResponse) String() string {
 func (*RequestFriendResponse) ProtoMessage() {}
 
 func (x *RequestFriendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[1]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -336,7 +336,7 @@ func (x *RequestFriendResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestFriendResponse.ProtoReflect.Descriptor instead.
 func (*RequestFriendResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{1}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *RequestFriendResponse) GetFriendshipId() string {
@@ -364,7 +364,7 @@ type AcceptFriendRequest struct {
 
 func (x *AcceptFriendRequest) Reset() {
 	*x = AcceptFriendRequest{}
-	mi := &file_social_proto_msgTypes[2]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -376,7 +376,7 @@ func (x *AcceptFriendRequest) String() string {
 func (*AcceptFriendRequest) ProtoMessage() {}
 
 func (x *AcceptFriendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[2]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -389,7 +389,7 @@ func (x *AcceptFriendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptFriendRequest.ProtoReflect.Descriptor instead.
 func (*AcceptFriendRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{2}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AcceptFriendRequest) GetAddresseeId() string {
@@ -422,7 +422,7 @@ type AcceptFriendResponse struct {
 
 func (x *AcceptFriendResponse) Reset() {
 	*x = AcceptFriendResponse{}
-	mi := &file_social_proto_msgTypes[3]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -434,7 +434,7 @@ func (x *AcceptFriendResponse) String() string {
 func (*AcceptFriendResponse) ProtoMessage() {}
 
 func (x *AcceptFriendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[3]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -447,7 +447,7 @@ func (x *AcceptFriendResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AcceptFriendResponse.ProtoReflect.Descriptor instead.
 func (*AcceptFriendResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{3}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AcceptFriendResponse) GetState() FriendState {
@@ -467,7 +467,7 @@ type RemoveFriendRequest struct {
 
 func (x *RemoveFriendRequest) Reset() {
 	*x = RemoveFriendRequest{}
-	mi := &file_social_proto_msgTypes[4]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -479,7 +479,7 @@ func (x *RemoveFriendRequest) String() string {
 func (*RemoveFriendRequest) ProtoMessage() {}
 
 func (x *RemoveFriendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[4]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -492,7 +492,7 @@ func (x *RemoveFriendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveFriendRequest.ProtoReflect.Descriptor instead.
 func (*RemoveFriendRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{4}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *RemoveFriendRequest) GetAccountId() string {
@@ -517,7 +517,7 @@ type RemoveFriendResponse struct {
 
 func (x *RemoveFriendResponse) Reset() {
 	*x = RemoveFriendResponse{}
-	mi := &file_social_proto_msgTypes[5]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -529,7 +529,7 @@ func (x *RemoveFriendResponse) String() string {
 func (*RemoveFriendResponse) ProtoMessage() {}
 
 func (x *RemoveFriendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[5]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -542,7 +542,7 @@ func (x *RemoveFriendResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveFriendResponse.ProtoReflect.Descriptor instead.
 func (*RemoveFriendResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{5}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{5}
 }
 
 type ListFriendsRequest struct {
@@ -554,7 +554,7 @@ type ListFriendsRequest struct {
 
 func (x *ListFriendsRequest) Reset() {
 	*x = ListFriendsRequest{}
-	mi := &file_social_proto_msgTypes[6]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -566,7 +566,7 @@ func (x *ListFriendsRequest) String() string {
 func (*ListFriendsRequest) ProtoMessage() {}
 
 func (x *ListFriendsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[6]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -579,7 +579,7 @@ func (x *ListFriendsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFriendsRequest.ProtoReflect.Descriptor instead.
 func (*ListFriendsRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{6}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListFriendsRequest) GetAccountId() string {
@@ -598,7 +598,7 @@ type ListFriendsResponse struct {
 
 func (x *ListFriendsResponse) Reset() {
 	*x = ListFriendsResponse{}
-	mi := &file_social_proto_msgTypes[7]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -610,7 +610,7 @@ func (x *ListFriendsResponse) String() string {
 func (*ListFriendsResponse) ProtoMessage() {}
 
 func (x *ListFriendsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[7]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -623,7 +623,7 @@ func (x *ListFriendsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFriendsResponse.ProtoReflect.Descriptor instead.
 func (*ListFriendsResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{7}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListFriendsResponse) GetFriends() []*Friend {
@@ -634,17 +634,18 @@ func (x *ListFriendsResponse) GetFriends() []*Friend {
 }
 
 type Friend struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
-	DisplayName   string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	LastSeenUnix  int64                  `protobuf:"varint,3,opt,name=last_seen_unix,json=lastSeenUnix,proto3" json:"last_seen_unix,omitempty"` // latest recorded authentication or adapter activity; 0 = unknown
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	AccountId        string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
+	DisplayName      string                 `protobuf:"bytes,2,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	LastSeenUnix     int64                  `protobuf:"varint,3,opt,name=last_seen_unix,json=lastSeenUnix,proto3" json:"last_seen_unix,omitempty"`             // latest recorded authentication or adapter activity; 0 = unknown
+	FriendsSinceUnix int64                  `protobuf:"varint,4,opt,name=friends_since_unix,json=friendsSinceUnix,proto3" json:"friends_since_unix,omitempty"` // when the friendship was accepted; 0 = unknown
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Friend) Reset() {
 	*x = Friend{}
-	mi := &file_social_proto_msgTypes[8]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -656,7 +657,7 @@ func (x *Friend) String() string {
 func (*Friend) ProtoMessage() {}
 
 func (x *Friend) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[8]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -669,7 +670,7 @@ func (x *Friend) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Friend.ProtoReflect.Descriptor instead.
 func (*Friend) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{8}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *Friend) GetAccountId() string {
@@ -693,6 +694,13 @@ func (x *Friend) GetLastSeenUnix() int64 {
 	return 0
 }
 
+func (x *Friend) GetFriendsSinceUnix() int64 {
+	if x != nil {
+		return x.FriendsSinceUnix
+	}
+	return 0
+}
+
 type ListIncomingRequestsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	AccountId     string                 `protobuf:"bytes,1,opt,name=account_id,json=accountId,proto3" json:"account_id,omitempty"`
@@ -702,7 +710,7 @@ type ListIncomingRequestsRequest struct {
 
 func (x *ListIncomingRequestsRequest) Reset() {
 	*x = ListIncomingRequestsRequest{}
-	mi := &file_social_proto_msgTypes[9]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -714,7 +722,7 @@ func (x *ListIncomingRequestsRequest) String() string {
 func (*ListIncomingRequestsRequest) ProtoMessage() {}
 
 func (x *ListIncomingRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[9]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -727,7 +735,7 @@ func (x *ListIncomingRequestsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIncomingRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListIncomingRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{9}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListIncomingRequestsRequest) GetAccountId() string {
@@ -746,7 +754,7 @@ type ListOutgoingRequestsRequest struct {
 
 func (x *ListOutgoingRequestsRequest) Reset() {
 	*x = ListOutgoingRequestsRequest{}
-	mi := &file_social_proto_msgTypes[10]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -758,7 +766,7 @@ func (x *ListOutgoingRequestsRequest) String() string {
 func (*ListOutgoingRequestsRequest) ProtoMessage() {}
 
 func (x *ListOutgoingRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[10]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -771,7 +779,7 @@ func (x *ListOutgoingRequestsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOutgoingRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListOutgoingRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{10}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListOutgoingRequestsRequest) GetAccountId() string {
@@ -790,7 +798,7 @@ type ListOutgoingRequestsResponse struct {
 
 func (x *ListOutgoingRequestsResponse) Reset() {
 	*x = ListOutgoingRequestsResponse{}
-	mi := &file_social_proto_msgTypes[11]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -802,7 +810,7 @@ func (x *ListOutgoingRequestsResponse) String() string {
 func (*ListOutgoingRequestsResponse) ProtoMessage() {}
 
 func (x *ListOutgoingRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[11]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -815,7 +823,7 @@ func (x *ListOutgoingRequestsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOutgoingRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListOutgoingRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{11}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListOutgoingRequestsResponse) GetAddressees() []*Friend {
@@ -834,7 +842,7 @@ type ListIncomingRequestsResponse struct {
 
 func (x *ListIncomingRequestsResponse) Reset() {
 	*x = ListIncomingRequestsResponse{}
-	mi := &file_social_proto_msgTypes[12]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -846,7 +854,7 @@ func (x *ListIncomingRequestsResponse) String() string {
 func (*ListIncomingRequestsResponse) ProtoMessage() {}
 
 func (x *ListIncomingRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[12]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -859,7 +867,7 @@ func (x *ListIncomingRequestsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListIncomingRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListIncomingRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{12}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ListIncomingRequestsResponse) GetRequesters() []*Friend {
@@ -879,7 +887,7 @@ type GetRelationshipRequest struct {
 
 func (x *GetRelationshipRequest) Reset() {
 	*x = GetRelationshipRequest{}
-	mi := &file_social_proto_msgTypes[13]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -891,7 +899,7 @@ func (x *GetRelationshipRequest) String() string {
 func (*GetRelationshipRequest) ProtoMessage() {}
 
 func (x *GetRelationshipRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[13]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +912,7 @@ func (x *GetRelationshipRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRelationshipRequest.ProtoReflect.Descriptor instead.
 func (*GetRelationshipRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{13}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetRelationshipRequest) GetAccountId() string {
@@ -930,7 +938,7 @@ type GetRelationshipResponse struct {
 
 func (x *GetRelationshipResponse) Reset() {
 	*x = GetRelationshipResponse{}
-	mi := &file_social_proto_msgTypes[14]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -942,7 +950,7 @@ func (x *GetRelationshipResponse) String() string {
 func (*GetRelationshipResponse) ProtoMessage() {}
 
 func (x *GetRelationshipResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[14]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -955,7 +963,7 @@ func (x *GetRelationshipResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRelationshipResponse.ProtoReflect.Descriptor instead.
 func (*GetRelationshipResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{14}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetRelationshipResponse) GetRelationship() Relationship {
@@ -976,7 +984,7 @@ type CheckInteractionRequest struct {
 
 func (x *CheckInteractionRequest) Reset() {
 	*x = CheckInteractionRequest{}
-	mi := &file_social_proto_msgTypes[15]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -988,7 +996,7 @@ func (x *CheckInteractionRequest) String() string {
 func (*CheckInteractionRequest) ProtoMessage() {}
 
 func (x *CheckInteractionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[15]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1001,7 +1009,7 @@ func (x *CheckInteractionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckInteractionRequest.ProtoReflect.Descriptor instead.
 func (*CheckInteractionRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{15}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CheckInteractionRequest) GetActorId() string {
@@ -1035,7 +1043,7 @@ type CheckInteractionResponse struct {
 
 func (x *CheckInteractionResponse) Reset() {
 	*x = CheckInteractionResponse{}
-	mi := &file_social_proto_msgTypes[16]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1047,7 +1055,7 @@ func (x *CheckInteractionResponse) String() string {
 func (*CheckInteractionResponse) ProtoMessage() {}
 
 func (x *CheckInteractionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[16]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1060,7 +1068,7 @@ func (x *CheckInteractionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckInteractionResponse.ProtoReflect.Descriptor instead.
 func (*CheckInteractionResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{16}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CheckInteractionResponse) GetAllowed() bool {
@@ -1087,7 +1095,7 @@ type BlockRequest struct {
 
 func (x *BlockRequest) Reset() {
 	*x = BlockRequest{}
-	mi := &file_social_proto_msgTypes[17]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1099,7 +1107,7 @@ func (x *BlockRequest) String() string {
 func (*BlockRequest) ProtoMessage() {}
 
 func (x *BlockRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[17]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1112,7 +1120,7 @@ func (x *BlockRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockRequest.ProtoReflect.Descriptor instead.
 func (*BlockRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{17}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *BlockRequest) GetBlockerId() string {
@@ -1137,7 +1145,7 @@ type BlockResponse struct {
 
 func (x *BlockResponse) Reset() {
 	*x = BlockResponse{}
-	mi := &file_social_proto_msgTypes[18]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1149,7 +1157,7 @@ func (x *BlockResponse) String() string {
 func (*BlockResponse) ProtoMessage() {}
 
 func (x *BlockResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[18]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1162,7 +1170,7 @@ func (x *BlockResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockResponse.ProtoReflect.Descriptor instead.
 func (*BlockResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{18}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{18}
 }
 
 type UnblockRequest struct {
@@ -1175,7 +1183,7 @@ type UnblockRequest struct {
 
 func (x *UnblockRequest) Reset() {
 	*x = UnblockRequest{}
-	mi := &file_social_proto_msgTypes[19]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1187,7 +1195,7 @@ func (x *UnblockRequest) String() string {
 func (*UnblockRequest) ProtoMessage() {}
 
 func (x *UnblockRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[19]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1200,7 +1208,7 @@ func (x *UnblockRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnblockRequest.ProtoReflect.Descriptor instead.
 func (*UnblockRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{19}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *UnblockRequest) GetBlockerId() string {
@@ -1225,7 +1233,7 @@ type UnblockResponse struct {
 
 func (x *UnblockResponse) Reset() {
 	*x = UnblockResponse{}
-	mi := &file_social_proto_msgTypes[20]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1237,7 +1245,7 @@ func (x *UnblockResponse) String() string {
 func (*UnblockResponse) ProtoMessage() {}
 
 func (x *UnblockResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[20]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1250,7 +1258,7 @@ func (x *UnblockResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnblockResponse.ProtoReflect.Descriptor instead.
 func (*UnblockResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{20}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{20}
 }
 
 type ListBlocksRequest struct {
@@ -1262,7 +1270,7 @@ type ListBlocksRequest struct {
 
 func (x *ListBlocksRequest) Reset() {
 	*x = ListBlocksRequest{}
-	mi := &file_social_proto_msgTypes[21]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1274,7 +1282,7 @@ func (x *ListBlocksRequest) String() string {
 func (*ListBlocksRequest) ProtoMessage() {}
 
 func (x *ListBlocksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[21]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1287,7 +1295,7 @@ func (x *ListBlocksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBlocksRequest.ProtoReflect.Descriptor instead.
 func (*ListBlocksRequest) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{21}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListBlocksRequest) GetAccountId() string {
@@ -1308,7 +1316,7 @@ type BlockedAccount struct {
 
 func (x *BlockedAccount) Reset() {
 	*x = BlockedAccount{}
-	mi := &file_social_proto_msgTypes[22]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1320,7 +1328,7 @@ func (x *BlockedAccount) String() string {
 func (*BlockedAccount) ProtoMessage() {}
 
 func (x *BlockedAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[22]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1333,7 +1341,7 @@ func (x *BlockedAccount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BlockedAccount.ProtoReflect.Descriptor instead.
 func (*BlockedAccount) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{22}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *BlockedAccount) GetAccountId() string {
@@ -1366,7 +1374,7 @@ type ListBlocksResponse struct {
 
 func (x *ListBlocksResponse) Reset() {
 	*x = ListBlocksResponse{}
-	mi := &file_social_proto_msgTypes[23]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1378,7 +1386,7 @@ func (x *ListBlocksResponse) String() string {
 func (*ListBlocksResponse) ProtoMessage() {}
 
 func (x *ListBlocksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_social_proto_msgTypes[23]
+	mi := &file_openpak_account_v1_social_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1391,7 +1399,7 @@ func (x *ListBlocksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBlocksResponse.ProtoReflect.Descriptor instead.
 func (*ListBlocksResponse) Descriptor() ([]byte, []int) {
-	return file_social_proto_rawDescGZIP(), []int{23}
+	return file_openpak_account_v1_social_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListBlocksResponse) GetBlocked() []*BlockedAccount {
@@ -1401,11 +1409,11 @@ func (x *ListBlocksResponse) GetBlocked() []*BlockedAccount {
 	return nil
 }
 
-var File_social_proto protoreflect.FileDescriptor
+var File_openpak_account_v1_social_proto protoreflect.FileDescriptor
 
-const file_social_proto_rawDesc = "" +
+const file_openpak_account_v1_social_proto_rawDesc = "" +
 	"\n" +
-	"\fsocial.proto\x12\x12openpak.account.v1\"\x85\x01\n" +
+	"\x1fopenpak/account/v1/social.proto\x12\x12openpak.account.v1\"\x85\x01\n" +
 	"\x14RequestFriendRequest\x12!\n" +
 	"\frequester_id\x18\x01 \x01(\tR\vrequesterId\x12!\n" +
 	"\faddressee_id\x18\x02 \x01(\tR\vaddresseeId\x12'\n" +
@@ -1428,12 +1436,13 @@ const file_social_proto_rawDesc = "" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\"K\n" +
 	"\x13ListFriendsResponse\x124\n" +
-	"\afriends\x18\x01 \x03(\v2\x1a.openpak.account.v1.FriendR\afriends\"p\n" +
+	"\afriends\x18\x01 \x03(\v2\x1a.openpak.account.v1.FriendR\afriends\"\x9e\x01\n" +
 	"\x06Friend\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12$\n" +
-	"\x0elast_seen_unix\x18\x03 \x01(\x03R\flastSeenUnix\"<\n" +
+	"\x0elast_seen_unix\x18\x03 \x01(\x03R\flastSeenUnix\x12,\n" +
+	"\x12friends_since_unix\x18\x04 \x01(\x03R\x10friendsSinceUnix\"<\n" +
 	"\x1bListIncomingRequestsRequest\x12\x1d\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tR\taccountId\"<\n" +
@@ -1519,23 +1528,23 @@ const file_social_proto_rawDesc = "" +
 	"\x05Block\x12 .openpak.account.v1.BlockRequest\x1a!.openpak.account.v1.BlockResponse\x12R\n" +
 	"\aUnblock\x12\".openpak.account.v1.UnblockRequest\x1a#.openpak.account.v1.UnblockResponse\x12[\n" +
 	"\n" +
-	"ListBlocks\x12%.openpak.account.v1.ListBlocksRequest\x1a&.openpak.account.v1.ListBlocksResponseB4Z2openpak/account/proto/openpak/account/v1;accountv1b\x06proto3"
+	"ListBlocks\x12%.openpak.account.v1.ListBlocksRequest\x1a&.openpak.account.v1.ListBlocksResponseB=Z;github.com/openpak/account-api/openpak/account/v1;accountv1b\x06proto3"
 
 var (
-	file_social_proto_rawDescOnce sync.Once
-	file_social_proto_rawDescData []byte
+	file_openpak_account_v1_social_proto_rawDescOnce sync.Once
+	file_openpak_account_v1_social_proto_rawDescData []byte
 )
 
-func file_social_proto_rawDescGZIP() []byte {
-	file_social_proto_rawDescOnce.Do(func() {
-		file_social_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_social_proto_rawDesc), len(file_social_proto_rawDesc)))
+func file_openpak_account_v1_social_proto_rawDescGZIP() []byte {
+	file_openpak_account_v1_social_proto_rawDescOnce.Do(func() {
+		file_openpak_account_v1_social_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_openpak_account_v1_social_proto_rawDesc), len(file_openpak_account_v1_social_proto_rawDesc)))
 	})
-	return file_social_proto_rawDescData
+	return file_openpak_account_v1_social_proto_rawDescData
 }
 
-var file_social_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_social_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
-var file_social_proto_goTypes = []any{
+var file_openpak_account_v1_social_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_openpak_account_v1_social_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_openpak_account_v1_social_proto_goTypes = []any{
 	(Relationship)(0),                    // 0: openpak.account.v1.Relationship
 	(InteractionKind)(0),                 // 1: openpak.account.v1.InteractionKind
 	(DenialReason)(0),                    // 2: openpak.account.v1.DenialReason
@@ -1565,7 +1574,7 @@ var file_social_proto_goTypes = []any{
 	(*BlockedAccount)(nil),               // 26: openpak.account.v1.BlockedAccount
 	(*ListBlocksResponse)(nil),           // 27: openpak.account.v1.ListBlocksResponse
 }
-var file_social_proto_depIdxs = []int32{
+var file_openpak_account_v1_social_proto_depIdxs = []int32{
 	3,  // 0: openpak.account.v1.RequestFriendResponse.state:type_name -> openpak.account.v1.FriendState
 	3,  // 1: openpak.account.v1.AcceptFriendResponse.state:type_name -> openpak.account.v1.FriendState
 	12, // 2: openpak.account.v1.ListFriendsResponse.friends:type_name -> openpak.account.v1.Friend
@@ -1604,27 +1613,27 @@ var file_social_proto_depIdxs = []int32{
 	0,  // [0:9] is the sub-list for field type_name
 }
 
-func init() { file_social_proto_init() }
-func file_social_proto_init() {
-	if File_social_proto != nil {
+func init() { file_openpak_account_v1_social_proto_init() }
+func file_openpak_account_v1_social_proto_init() {
+	if File_openpak_account_v1_social_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_social_proto_rawDesc), len(file_social_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_openpak_account_v1_social_proto_rawDesc), len(file_openpak_account_v1_social_proto_rawDesc)),
 			NumEnums:      4,
 			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_social_proto_goTypes,
-		DependencyIndexes: file_social_proto_depIdxs,
-		EnumInfos:         file_social_proto_enumTypes,
-		MessageInfos:      file_social_proto_msgTypes,
+		GoTypes:           file_openpak_account_v1_social_proto_goTypes,
+		DependencyIndexes: file_openpak_account_v1_social_proto_depIdxs,
+		EnumInfos:         file_openpak_account_v1_social_proto_enumTypes,
+		MessageInfos:      file_openpak_account_v1_social_proto_msgTypes,
 	}.Build()
-	File_social_proto = out.File
-	file_social_proto_goTypes = nil
-	file_social_proto_depIdxs = nil
+	File_openpak_account_v1_social_proto = out.File
+	file_openpak_account_v1_social_proto_goTypes = nil
+	file_openpak_account_v1_social_proto_depIdxs = nil
 }

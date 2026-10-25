@@ -309,7 +309,7 @@ const file_openpak_account_v1_registration_proto_rawDesc = "" +
 	"emailTaken2\xe3\x01\n" +
 	"\fRegistration\x12j\n" +
 	"\x0fRegisterAccount\x12*.openpak.account.v1.RegisterAccountRequest\x1a+.openpak.account.v1.RegisterAccountResponse\x12g\n" +
-	"\x0eSetDisplayName\x12).openpak.account.v1.SetDisplayNameRequest\x1a*.openpak.account.v1.SetDisplayNameResponseB4Z2openpak/account/proto/openpak/account/v1;accountv1b\x06proto3"
+	"\x0eSetDisplayName\x12).openpak.account.v1.SetDisplayNameRequest\x1a*.openpak.account.v1.SetDisplayNameResponseB=Z;github.com/openpak/account-api/openpak/account/v1;accountv1b\x06proto3"
 
 var (
 	file_openpak_account_v1_registration_proto_rawDescOnce sync.Once

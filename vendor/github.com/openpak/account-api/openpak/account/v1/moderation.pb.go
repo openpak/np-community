@@ -901,7 +901,7 @@ const file_openpak_account_v1_moderation_proto_rawDesc = "" +
 	"\n" +
 	"FileReport\x12%.openpak.account.v1.FileReportRequest\x1a&.openpak.account.v1.FileReportResponse\x12^\n" +
 	"\vListReports\x12&.openpak.account.v1.ListReportsRequest\x1a'.openpak.account.v1.ListReportsResponse\x12d\n" +
-	"\rResolveReport\x12(.openpak.account.v1.ResolveReportRequest\x1a).openpak.account.v1.ResolveReportResponseB4Z2openpak/account/proto/openpak/account/v1;accountv1b\x06proto3"
+	"\rResolveReport\x12(.openpak.account.v1.ResolveReportRequest\x1a).openpak.account.v1.ResolveReportResponseB=Z;github.com/openpak/account-api/openpak/account/v1;accountv1b\x06proto3"
 
 var (
 	file_openpak_account_v1_moderation_proto_rawDescOnce sync.Once

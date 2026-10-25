@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package openpak.account.v1;
 
-option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+option go_package = "github.com/openpak/account-api/openpak/account/v1;accountv1";
 
 // Canonical friend graph and interaction enforcement (PRD SW-05). The core
 // owns relationships and blocks; adapters receive projections and answers,
@@ -73,6 +73,7 @@ message Friend {
   string account_id = 1;
   string display_name = 2;
   int64 last_seen_unix = 3; // latest recorded authentication or adapter activity; 0 = unknown
+  int64 friends_since_unix = 4; // when the friendship was accepted; 0 = unknown
 }
 
 message ListIncomingRequestsRequest { string account_id = 1; }

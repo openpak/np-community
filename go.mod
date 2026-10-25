@@ -14,6 +14,9 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 )
 
-require openpak/np-common v0.0.0
+require (
+	github.com/openpak/account-api v0.1.0
+	openpak/np-common v0.0.0
+)
 
 replace openpak/np-common => ../np-common
