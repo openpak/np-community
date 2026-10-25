@@ -11,5 +11,5 @@ LABEL org.opencontainers.image.source="https://github.com/openpak/np-community"
 RUN addgroup -S app && adduser -S -G app app && apk add --no-cache ca-certificates
 USER app
 COPY --from=build /out/np-community /usr/local/bin/np-community
-EXPOSE 8002 8443
+EXPOSE 8003 8443 8523
 ENTRYPOINT ["/usr/local/bin/np-community"]
