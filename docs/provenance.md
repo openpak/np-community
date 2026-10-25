@@ -7,7 +7,7 @@
 # PS3 sign-in and social wire provenance
 
 Sources are our PS3 firmware 4.93 decompiles and Pier lab captures under
-`Openpak/scratch/pier/`. No third-party server implementation was used.
+private notes. No third-party server implementation was used.
 
 - `/nav/auth`, request fields and headers: `capture/capture.jsonl`, 2026-10-15.
   VSH `FUN_0022eda8` receives the ticket after checking HTTP status and headers.
@@ -117,7 +117,7 @@ OpenPak core as the identity authority.
 
 Owner-local firmware 4.93 np_trophy_util.sprx was decrypted in a separate config
 profile without stopping Pier, then analyzed in Ghidra. Analysis artifacts remain
-under scratch/pier/trophy-work, not committed. Wire facts from FUN_00046070 and
+under private notes, not committed. Wire facts from FUN_00046070 and
 00045e70: POST /trophy/sec/sync_trophies carries nptrophy/ticket and list/info with
 npcommid, nested trophies/trophy attributes id and type, and a timestamp as text.
 IDs are one-based on this wire; grades 0/1/2/3 mean bronze/silver/gold/platinum.
