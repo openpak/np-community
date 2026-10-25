@@ -1,0 +1,256 @@
+syntax = "proto3";
+
+package openpak.account.v1;
+
+option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+
+// Live-session registry and core-routed invitations (PRD SW-06/SW-07).
+// Adapters register sessions with short leases; the core routes invitations
+// to a live session for the target account and title. Leases and expiry are
+// core-owned so stale-session cleanup has a shared clock.
+service Sessions {
+  // Register a live session. A server-side session_id is returned; the
+  // lease (default 30 s) must be renewed by Heartbeat before expiry.
+  rpc RegisterSession(RegisterSessionRequest) returns (RegisterSessionResponse);
+  // Renew the lease. Fails if the session expired or was expired.
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  // Explicit teardown (clean disconnect, host exit).
+  rpc ExpireSession(ExpireSessionRequest) returns (ExpireSessionResponse);
+  // Resolve the live session for an account and title, if any.
+  rpc ResolveSession(ResolveSessionRequest) returns (ResolveSessionResponse);
+  // Presence for a set of accounts, derived from their live session leases:
+  // who is online and in which title. A read for companion surfaces (a phone
+  // showing a friends list); it registers nothing and renews nothing.
+  rpc GetPresence(GetPresenceRequest) returns (GetPresenceResponse);
+  // How many people are playing, per title. Derived from the same live leases
+  // as presence, so a status page and a friends list can never disagree about
+  // who is online. Counts accounts, not sessions.
+  rpc GetPlayerCounts(GetPlayerCountsRequest) returns (GetPlayerCountsResponse);
+  // How long each title has been played online, per client and OS: every
+  // finished session plus the live ones. The website marks a title tested on a
+  // console or emulator from this. Aggregates only, no accounts.
+  rpc GetPlaytime(GetPlaytimeRequest) returns (GetPlaytimeResponse);
+  // A game server (through nx-baas or nn-account, at the player's login) saying
+  // these players reached it. Their live titled presence session in that
+  // namespace counts playtime from the first such mark until it ends; a session
+  // that never reached a game server counts none. A player with no live titled
+  // session is skipped: the client and OS come from presence.
+  rpc MarkOnline(MarkOnlineRequest) returns (MarkOnlineResponse);
+}
+
+service Invitations {
+  // Deliver an invitation to a live session. The core enforces CheckInteraction
+  // rules, stamps expiry and a nonce (replay rejection), requires a live
+  // session for the target account + title, and binds the invitation to that
+  // session (delivery fails if the session is replaced, expired, or removed;
+  // blocks are re-checked at delivery time).
+  rpc SendInvitation(SendInvitationRequest) returns (SendInvitationResponse);
+  // Poll pending invitations for an account on one adapter namespace.
+  // Delivery is at-least-once: returned invitations stay pending for a
+  // redelivery window (60 s) until acknowledged, so a lost response is
+  // recovered by polling again. Expired or policy-invalid invitations are
+  // reaped/rejected server-side before delivery.
+  rpc PollInvitations(PollInvitationsRequest) returns (PollInvitationsResponse);
+  // Acknowledge received invitations (id + nonce pairs). Only pending
+  // invitations matching namespace/account/nonce are marked delivered.
+  rpc AckInvitations(AckInvitationsRequest) returns (AckInvitationsResponse);
+  // Read the pending invitations addressed to an account, across every
+  // namespace, WITHOUT consuming them: no redelivery window is started and
+  // nothing is marked delivered, so a companion app showing an inbox cannot
+  // take an invitation away from the adapter that has to deliver it. The
+  // summary carries no payload and no nonce; both belong to that adapter.
+  rpc ListInvitations(ListInvitationsRequest) returns (ListInvitationsResponse);
+  // Reject an invitation on behalf of its recipient (the "decline" button).
+  // Only the account it was addressed to can reject it, and only while it is
+  // still pending.
+  rpc RejectInvitation(RejectInvitationRequest) returns (RejectInvitationResponse);
+}
+
+message RegisterSessionRequest {
+  string account_id = 1;
+  string namespace = 2;      // owning adapter namespace (e.g. "switch")
+  string title_id = 3;       // adapter-scoped title/tenant routing metadata
+  string endpoint_ref = 4;   // opaque adapter-interpreted delivery handle
+  int32 lease_seconds = 5;   // optional; server default 30, cap 300
+  // What the session runs on inside the namespace: "switch" (real console),
+  // "ryujinx", "eden", "citron", "wiiu", "3ds", "cemu", "azahar". Optional;
+  // empty means the adapter could not tell. Capped at 64 bytes.
+  string client = 6;
+  // The OS an emulator said it runs on: "windows", "macos", "linux",
+  // "android", "ios". Empty for a real console and when the emulator did not
+  // say; anything else is stored as empty.
+  string os = 7;
+}
+
+message RegisterSessionResponse {
+  string session_id = 1;
+  int32 lease_seconds = 2;
+}
+
+message HeartbeatRequest { string session_id = 1; }
+
+message HeartbeatResponse { int32 lease_seconds = 1; }
+
+message ExpireSessionRequest { string session_id = 1; }
+
+message ExpireSessionResponse {}
+
+message ResolveSessionRequest {
+  string account_id = 1;
+  string title_id = 2;
+}
+
+message ResolveSessionResponse {
+  string session_id = 1;
+  string namespace = 2;
+  string endpoint_ref = 3;
+}
+
+message SendInvitationRequest {
+  string from_account_id = 1;
+  string to_account_id = 2;
+  string title_id = 3;
+  bytes payload = 4;         // opaque adapter content; server-capped at 4096 bytes
+  int32 ttl_seconds = 5;     // required; cap 86400
+}
+
+message SendInvitationResponse {
+  string invitation_id = 1;
+  string nonce = 2;          // caller echoes for replay rejection
+}
+
+message PollInvitationsRequest {
+  string namespace = 1;      // delivering adapter's own namespace
+  string account_id = 2;
+  int32 limit = 3;
+}
+
+message PollInvitationsResponse {
+  repeated Invitation invitations = 1;
+}
+
+message AckInvitationsRequest {
+  string namespace = 1;
+  string account_id = 2;
+  repeated string invitation_ids = 3;
+  repeated string nonces = 4; // parallel to invitation_ids
+}
+
+message AckInvitationsResponse { int32 acked = 1; }
+
+message Invitation {
+  string invitation_id = 1;
+  string from_account_id = 2;
+  string from_display_name = 3;
+  string title_id = 4;
+  bytes payload = 5;
+  string nonce = 6;
+  int64 expires_at_unix = 7;
+}
+
+message GetPresenceRequest {
+  repeated string account_ids = 1; // capped server-side at 200
+}
+
+message GetPresenceResponse {
+  repeated Presence presence = 1; // only accounts with a live session
+}
+
+message Presence {
+  string account_id = 1;
+  string namespace = 2;    // adapter the session belongs to
+  string title_id = 3;     // what they are playing; empty when the adapter sent none
+  int64 since_unix = 4;    // when the session was registered
+  string node_id = 5;      // the federation node the session came through; "home" for the core's own adapters
+  string client = 6;       // RegisterSessionRequest.client of that session; empty when unknown
+  string os = 7;           // RegisterSessionRequest.os of that session; empty when unknown
+}
+
+message ListInvitationsRequest {
+  string account_id = 1;
+  int32 limit = 2;         // optional; server default and cap 100
+}
+
+message ListInvitationsResponse {
+  repeated InvitationSummary invitations = 1;
+}
+
+// What a person may see about an invitation waiting for them. Deliberately not
+// Invitation: payload and nonce are the delivering adapter's business.
+message InvitationSummary {
+  string invitation_id = 1;
+  string from_account_id = 2;
+  string from_display_name = 3;
+  string title_id = 4;
+  string namespace = 5;
+  int64 expires_at_unix = 6;
+}
+
+message RejectInvitationRequest {
+  string account_id = 1;   // must be the recipient
+  string invitation_id = 2;
+}
+
+message RejectInvitationResponse { bool rejected = 1; }
+
+message MarkOnlineRequest {
+  repeated OnlinePlayer players = 1; // capped at 1000 per call; usually the one logging in
+}
+
+message OnlinePlayer {
+  string account_id = 1;
+  string namespace = 2; // "switch", "wiiu", "3ds"
+  string title_id = 3;  // optional; empty marks whichever titled session the account has there
+}
+
+message MarkOnlineResponse {
+  int32 marked = 1; // players that had a live titled session to mark
+}
+
+message GetPlaytimeRequest {}
+
+message GetPlaytimeResponse {
+  repeated PlaytimeTally tallies = 1;
+}
+
+// Playtime of one title on one client and OS, across every account.
+message PlaytimeTally {
+  string namespace = 1;
+  string title_id = 2;
+  string client = 3;
+  string os = 4;
+  // Seconds from the first game-server login of a session (MarkOnline) to its
+  // end, not the time the title was merely open.
+  int64 total_seconds = 5;   // every session added up
+  int64 longest_seconds = 6; // the longest single session
+  int32 sessions = 7;
+}
+
+message GetPlayerCountsRequest {}
+
+message GetPlayerCountsResponse {
+  repeated TitlePlayers titles = 1;
+  int32 total_players = 2; // distinct accounts, not the sum of the rows
+  // Per adapter namespace: one entry per console network with anybody on it.
+  // Also distinct accounts, so someone playing two titles on the same network
+  // is one player there.
+  repeated NetworkPlayers networks = 3;
+  // Per federation node, distinct accounts. Where people are, for the status page.
+  repeated NodePlayers nodes = 4;
+}
+
+message NodePlayers {
+  string node_id = 1;
+  int32 players = 2;
+}
+
+message NetworkPlayers {
+  string namespace = 1;
+  int32 players = 2;
+}
+
+message TitlePlayers {
+  string title_id = 1;
+  string namespace = 2;
+  int32 players = 3;
+}

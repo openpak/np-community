@@ -1,0 +1,22 @@
+# Sample only. Copy to ~/.config/containers/systemd/openpak-np-community.container.
+# Use a separate env file per service; do not share NP_HTTP_ADDR or OAuth secrets.
+[Unit]
+Description=OpenPak np-community
+
+[Container]
+ContainerName=openpak-np-community
+Image=ghcr.io/openpak/np-community:latest
+Network=openpak
+EnvironmentFile=%h/openpak/deploy/np-community.env
+Environment=NP_HTTP_ADDR=:8003
+Volume=%h/openpak/deploy/ps3-keys:/run/ps3:ro
+Environment=NP_XMPP_ADDR=:8523
+Environment=NP_XMPP_TLS=1
+Environment=NP_TLS_CA_CERT=/run/ps3/ca.crt
+Environment=NP_TLS_CA_KEY=/run/ps3/ca.key
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package openpak.account.v1;
+
+option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+
+// Account media (website contract request CR-2). The website processes an
+// upload and stores the two PNGs here; adapters fetch them by account id to
+// serve consoles. The core validates (PNG, exact size, byte limit) but never
+// re-encodes. PutAvatar and DeleteAvatar are home-only; GetAvatar is open to
+// every authenticated caller.
+service Media {
+  // Replace an account's avatar with both sizes atomically. InvalidArgument
+  // unless png_256 is a 256x256 PNG of at most 256 KiB and png_512 a 512x512
+  // PNG of at most 1 MiB. NotFound for unknown or deleted accounts.
+  rpc PutAvatar(PutAvatarRequest) returns (PutAvatarResponse);
+  // One size of an account's avatar. NotFound when the account has none (or
+  // is being deleted). With if_none_match equal to the current version the
+  // response has not_modified = true and no bytes.
+  rpc GetAvatar(GetAvatarRequest) returns (GetAvatarResponse);
+  // Remove the avatar. Idempotent.
+  rpc DeleteAvatar(DeleteAvatarRequest) returns (DeleteAvatarResponse);
+}
+
+message PutAvatarRequest {
+  string account_id = 1;
+  bytes png_256 = 2;
+  bytes png_512 = 3;
+}
+
+message PutAvatarResponse {
+  string version = 1; // content hash of both sizes; changes whenever either does
+}
+
+message GetAvatarRequest {
+  string account_id = 1;
+  uint32 size = 2;          // 256 or 512; 0 means 512
+  string if_none_match = 3; // a version the caller already holds
+}
+
+message GetAvatarResponse {
+  bytes png = 1;          // empty when not_modified
+  string version = 2;
+  int64 updated_at_unix = 3;
+  bool not_modified = 4;
+}
+
+message DeleteAvatarRequest { string account_id = 1; }
+
+message DeleteAvatarResponse {}

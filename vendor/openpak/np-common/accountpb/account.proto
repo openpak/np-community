@@ -1,0 +1,285 @@
+syntax = "proto3";
+
+package openpak.account.v1;
+
+option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+
+// Internal identity contract: narrowly scoped verification and status.
+// Never exposes password hashes or recovery credentials.
+service Identity {
+  // Home-only operator action, after a deletion request. Not a user rename.
+  rpc FinalizeAccountDeletion(RequestAccountDeletionRequest) returns (RequestAccountDeletionResponse);
+  rpc CheckHandle(CheckHandleRequest) returns (CheckHandleResponse);
+  rpc ResolveHandle(ResolveHandleRequest) returns (ResolveHandleResponse);
+  // Home-only legacy migration: one assignment, no rename path.
+  rpc ClaimHandle(ClaimHandleRequest) returns (ClaimHandleResponse);
+  // Home-only, minimal active-account directory for adapter identity backfills.
+  // Keyset cursor is an account ID, not an offset; no emails or credentials.
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+  // Verify an account's email+password. Returns a short-lived result bound to
+  // the caller's namespace and purpose; never an unrestricted session.
+  rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordResponse);
+  // Verify by account ID, for adapters that resolve namespace subjects to
+  // core accounts themselves (console login uses adapter usernames, so the
+  // adapter maps subject→account and calls this).
+  rpc VerifyPasswordByID(VerifyPasswordByIDRequest) returns (VerifyPasswordResponse);
+  // Store an adapter-domain credential (e.g. a console's transformed
+  // password hash). Separate domain from web passwords (FR-1/FR-3).
+  rpc SetAdapterCredential(SetAdapterCredentialRequest) returns (SetAdapterCredentialResponse);
+  // Start account deletion (FR-8): disables access immediately, emits
+  // account_delete_started; full cleanup orchestration lands in M3/M4.
+  rpc RequestAccountDeletion(RequestAccountDeletionRequest) returns (RequestAccountDeletionResponse);
+  // Verify an adapter-domain credential. Never yields a web session.
+  rpc VerifyAdapterCredential(VerifyAdapterCredentialRequest) returns (VerifyAdapterCredentialResponse);
+  // Resolve an account by ID for status and minimal profile projection.
+  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+  // The second half of a password check for an account with two-factor
+  // authentication (see the rule on VerifyPasswordRequest). Takes a TOTP code
+  // or a recovery code. Unauthenticated for a wrong or reused code,
+  // ResourceExhausted after 5 wrong codes in 15 minutes (shared with web
+  // sign-in), FailedPrecondition when the account has no second factor.
+  rpc VerifySecondFactor(VerifySecondFactorRequest) returns (VerifySecondFactorResponse);
+}
+
+message VerifySecondFactorRequest {
+  string account_id = 1;
+  string code = 2;          // 6-digit TOTP code, or
+  string recovery_code = 3; // one of the ten recovery codes ("xxxxx-xxxxx"; case, dashes, spaces ignored)
+}
+
+message VerifySecondFactorResponse {
+  bool recovery_code_used = 1;
+  uint32 recovery_codes_left = 2;
+}
+
+message VerifyPasswordByIDRequest {
+  string caller_namespace = 1;
+  string purpose = 2;
+  string account_id = 3;
+  string password = 4;
+  // Same rule as VerifyPasswordRequest.second_factor_supported.
+  bool second_factor_supported = 5;
+}
+
+message VerifyPasswordRequest {
+  string caller_namespace = 1; // adapter namespace requesting verification
+  string purpose = 2;          // e.g. "console_login", "link"
+  string email = 3;
+  string password = 4;
+  // Two-factor rule. A password alone never signs in an account that has
+  // two-factor authentication. For such an account, after the password
+  // checks out:
+  //   - a caller that leaves this false gets FailedPrecondition
+  //     ("two-factor authentication required") and no account id, so a
+  //     caller written before two-factor existed fails closed instead of
+  //     becoming a bypass;
+  //   - a caller that sets it gets the normal response with
+  //     two_factor_required = true, and MUST complete VerifySecondFactor
+  //     before treating the person as signed in or linking anything.
+  // Wrong passwords are rejected first, so the rule reveals nothing to a
+  // guesser. Adapter credentials (VerifyAdapterCredential) are unaffected:
+  // they are issued to a device after a completed sign-in.
+  bool second_factor_supported = 5;
+}
+
+message VerifyPasswordResponse {
+  string account_id = 1;
+  AccountStatus status = 2;
+  bool email_verified = 3;
+  // Profile facts the console's user object requires; empty when never collected.
+  string country = 4;
+  string birthday = 5; // ISO 8601 date, e.g. "1990-01-01"
+  // Set only for callers that sent second_factor_supported: the password was
+  // right, and VerifySecondFactor is still owed.
+  bool two_factor_required = 6;
+}
+
+message GetAccountRequest { string account_id = 1; }
+
+message GetAccountResponse {
+  string handle = 9;
+  string account_id = 1;
+  AccountStatus status = 2;
+  bool email_verified = 3;
+  string display_name = 4;
+  string country = 5;
+  string birthday = 6; // ISO 8601 date, e.g. "1990-01-01"
+  bool two_factor_enabled = 7;
+  // The sign-in address, for an adapter whose console protocol carries it (a Nintendo Account's
+  // users/me has the address and a masked form of it). Never logged by an adapter.
+  string email = 8;
+}
+
+message SetAdapterCredentialRequest {
+  string caller_namespace = 1;
+  string purpose = 2;
+  string account_id = 3;
+  string secret = 4; // adapter-forwarded secret; hashed server-side, never logged
+}
+
+message SetAdapterCredentialResponse {}
+
+message RequestAccountDeletionRequest {
+  string caller_namespace = 1;
+  string purpose = 2;
+  string account_id = 3;
+}
+
+message RequestAccountDeletionResponse {}
+
+message VerifyAdapterCredentialRequest {
+  string caller_namespace = 1;
+  string purpose = 2;
+  string account_id = 3;
+  string secret = 4;
+}
+
+message VerifyAdapterCredentialResponse {
+  bool valid = 1;
+  AccountStatus status = 2;
+}
+
+enum AccountStatus {
+  ACCOUNT_STATUS_UNSPECIFIED = 0;
+  ACCOUNT_STATUS_ACTIVE = 1;
+  ACCOUNT_STATUS_BANNED = 2;
+  ACCOUNT_STATUS_DELETION_PENDING = 3;
+  ACCOUNT_STATUS_DELETED = 4;
+}
+
+// Generic, console-neutral adapter links. The core stores the adapter
+// namespace and an opaque subject ID; it never interprets their contents.
+service Links {
+  // Reserve a subject for an account (state: pending). Idempotent per
+  // (namespace, subject_id); rejects conflicting account claims.
+  rpc ReserveLink(ReserveLinkRequest) returns (ReserveLinkResponse);
+  // Activate a pending reservation once the adapter has proven ownership
+  // (state: active). Fails if the reservation is not pending.
+  rpc ActivateLink(ActivateLinkRequest) returns (ActivateLinkResponse);
+  // Unlink (state: revoking, then revoked). Does not delete the account.
+  rpc UnlinkLink(UnlinkLinkRequest) returns (UnlinkLinkResponse);
+  // Look up the active link for an adapter subject.
+  rpc GetLinkBySubject(GetLinkBySubjectRequest) returns (GetLinkBySubjectResponse);
+  // Resolve the active link for an account in one adapter namespace, so
+  // adapter retries never mint a second subject (PRD SW-01). NotFound when
+  // the account has no active link in that namespace.
+  rpc GetActiveLinkByAccount(GetActiveLinkByAccountRequest) returns (GetLinkBySubjectResponse);
+  // Publish the adapter-minted human code (e.g. the Switch friend code) on an
+  // active link; replaces the previous one, empty unpublishes. The core
+  // stores it and never mints or interprets it. AlreadyExists when another
+  // active link in the namespace holds the same code; FailedPrecondition when
+  // the link is not active. Unlinking clears it. See docs/public-codes.md.
+  rpc SetLinkPublicCode(SetLinkPublicCodeRequest) returns (SetLinkPublicCodeResponse);
+  // Every active link of an account (optionally one namespace), with subject
+  // and published code: the read side for third-party surfaces.
+  rpc ListAccountLinks(ListAccountLinksRequest) returns (ListAccountLinksResponse);
+  // Resolve a code as a person typed it to the active link that published it.
+  // NotFound when no active link in the namespace holds it.
+  rpc GetLinkByPublicCode(GetLinkByPublicCodeRequest) returns (GetLinkBySubjectResponse);
+}
+
+message SetLinkPublicCodeRequest {
+  string link_id = 1;
+  string public_code = 2; // display form, e.g. "SW-1234-5678-9012"; up to 64 characters
+  // Optional canonical lookup form, e.g. "123456789012". Reduced to lower-case
+  // letters and digits; empty means the display form reduced the same way.
+  string lookup_key = 3;
+}
+
+message SetLinkPublicCodeResponse {}
+
+message ListAccountLinksRequest {
+  string account_id = 1;
+  string namespace = 2; // optional filter
+}
+
+message AccountLink {
+  string link_id = 1;
+  string namespace = 2;
+  string subject_id = 3;
+  string public_code = 4; // empty until the adapter publishes one
+}
+
+message ListAccountLinksResponse { repeated AccountLink links = 1; }
+
+message GetLinkByPublicCodeRequest {
+  string namespace = 1;
+  string public_code = 2; // as typed: case, dashes and spaces are ignored
+}
+
+message ReserveLinkRequest {
+  string account_id = 1;
+  string namespace = 2;
+  string subject_id = 3;
+  string idempotency_key = 4;
+}
+
+message ReserveLinkResponse {
+  string link_id = 1;
+  LinkState state = 2;
+}
+
+message ActivateLinkRequest {
+  string link_id = 1;
+  string idempotency_key = 2;
+}
+
+message ActivateLinkResponse { LinkState state = 1; }
+
+message UnlinkLinkRequest {
+  string link_id = 1;
+  string idempotency_key = 2;
+}
+
+message UnlinkLinkResponse { LinkState state = 1; }
+
+message GetLinkBySubjectRequest {
+  string namespace = 1;
+  string subject_id = 2;
+}
+
+message GetActiveLinkByAccountRequest {
+  string namespace = 1;
+  string account_id = 2;
+}
+
+message GetLinkBySubjectResponse {
+  string link_id = 1;
+  string account_id = 2;
+  LinkState state = 3;
+  // Populated by GetActiveLinkByAccount and GetLinkByPublicCode (the subject
+  // is the lookup key on GetLinkBySubject).
+  string subject_id = 4;
+  // The adapter-published human code for this link, if any (every call).
+  string public_code = 5;
+}
+
+enum LinkState {
+  LINK_STATE_UNSPECIFIED = 0;
+  LINK_STATE_PENDING = 1;
+  LINK_STATE_ACTIVE = 2;
+  LINK_STATE_REVOKING = 3;
+  LINK_STATE_REVOKED = 4;
+}
+
+message ListAccountsRequest {
+ string after_account_id = 1;
+ int32 limit = 2; // default 100, maximum 500
+}
+message AccountProjection {
+ string handle = 4;
+ string account_id = 1;
+ string display_name = 2;
+ string country = 3;
+}
+message ListAccountsResponse {
+ repeated AccountProjection accounts = 1;
+ string next_after_account_id = 2; // empty at end
+}
+
+message CheckHandleRequest { string handle = 1; }
+message CheckHandleResponse { bool valid = 1; bool available = 2; string reason = 3; }
+message ResolveHandleRequest { string handle = 1; }
+message ResolveHandleResponse { string account_id = 1; }
+message ClaimHandleRequest { string account_id = 1; string handle = 2; }
+message ClaimHandleResponse {}

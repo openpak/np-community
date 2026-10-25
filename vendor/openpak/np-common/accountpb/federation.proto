@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package openpak.account.v1;
+
+option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+
+// Region nodes. A node is a relay tier (Photon GameServer, NPLN relay, TURN)
+// that announces its addresses; the matchmaking servers at home hand those
+// addresses out per room, so a joiner lands wherever the host's room lives.
+// Accounts, friends and matchmaking never leave home.
+service Federation {
+  // Called by the website on behalf of an operator. Returns the node's key
+  // exactly once; the core keeps only its hash.
+  rpc CreateNode(CreateNodeRequest) returns (CreateNodeResponse);
+  // Called by a node with its own key, about once a minute. Replaces the
+  // node's advertised services and marks it seen.
+  rpc Announce(AnnounceRequest) returns (AnnounceResponse);
+  // Approved nodes seen within the last few minutes. What the matchmaking
+  // servers and the status page pick from.
+  rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
+  // Every node, approved or not, seen or not: the admin view.
+  rpc ListAllNodes(ListNodesRequest) returns (ListNodesResponse);
+  rpc SetNodeApproved(SetNodeApprovedRequest) returns (SetNodeApprovedResponse);
+}
+
+message CreateNodeRequest {
+  string node_id = 1;  // slug: [a-z0-9-], 2..32
+  string name = 2;
+  string country = 3;  // ISO 3166-1 alpha-2
+}
+
+message CreateNodeResponse {
+  string node_id = 1;
+  string key = 2;      // shown once
+}
+
+message AnnounceRequest {
+  map<string, string> services = 1; // service -> host:port
+}
+
+message AnnounceResponse {
+  string node_id = 1;
+  bool approved = 2;
+}
+
+message ListNodesRequest {}
+
+message ListNodesResponse {
+  repeated Node nodes = 1;
+}
+
+message Node {
+  string node_id = 1;
+  string name = 2;
+  string country = 3;
+  map<string, string> services = 4;
+  int64 last_seen_unix = 5; // 0 = never
+  bool approved = 6;
+}
+
+message SetNodeApprovedRequest {
+  string node_id = 1;
+  bool approved = 2;
+}
+
+message SetNodeApprovedResponse {}

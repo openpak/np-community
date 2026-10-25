@@ -1,0 +1,162 @@
+syntax = "proto3";
+
+package openpak.account.v1;
+
+option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+
+// Canonical friend graph and interaction enforcement (PRD SW-05). The core
+// owns relationships and blocks; adapters receive projections and answers,
+// never another authoritative store. Friend-request lifecycle is core-side.
+service Social {
+  // Request friendship (state: pending until the addressee accepts).
+  // Idempotent while pending; self-requests are rejected.
+  rpc RequestFriend(RequestFriendRequest) returns (RequestFriendResponse);
+  // Accept a pending incoming request. Fails unless pending.
+  rpc AcceptFriend(AcceptFriendRequest) returns (AcceptFriendResponse);
+  // Remove an accepted friendship (either side). Idempotent when absent.
+  rpc RemoveFriend(RemoveFriendRequest) returns (RemoveFriendResponse);
+  // Accepted friends with minimal profile projection.
+  rpc ListFriends(ListFriendsRequest) returns (ListFriendsResponse);
+  // Pending incoming requests for an account.
+  rpc ListIncomingRequests(ListIncomingRequestsRequest) returns (ListIncomingRequestsResponse);
+  // Pending requests the account SENT (Wii U protocol needs both sides).
+  rpc ListOutgoingRequests(ListOutgoingRequestsRequest) returns (ListOutgoingRequestsResponse);
+  // Relationship between two accounts from the first account's viewpoint.
+  rpc GetRelationship(GetRelationshipRequest) returns (GetRelationshipResponse);
+  // Enforcement answer for a directed interaction (discovery, invitation,
+  // message). Consults friendship, blocks, and account status; privacy
+  // broadening beyond friendship is future work (see SP-5 draft).
+  rpc CheckInteraction(CheckInteractionRequest) returns (CheckInteractionResponse);
+  // Block an account (durable, directional). Unfriend effect is explicit:
+  // blocking does not remove an existing friendship row; enforcement still
+  // denies interactions while a block exists.
+  rpc Block(BlockRequest) returns (BlockResponse);
+  rpc Unblock(UnblockRequest) returns (UnblockResponse);
+  // The accounts account_id has blocked, newest first (the blocker's own
+  // list only; who blocked you is never answered). Deleted accounts drop out.
+  rpc ListBlocks(ListBlocksRequest) returns (ListBlocksResponse);
+}
+
+message RequestFriendRequest {
+  string requester_id = 1;
+  string addressee_id = 2;
+  string idempotency_key = 3;
+}
+
+message RequestFriendResponse {
+  string friendship_id = 1;
+  FriendState state = 2;
+}
+
+message AcceptFriendRequest {
+  string addressee_id = 1;   // caller must be the addressee
+  string requester_id = 2;
+  string idempotency_key = 3;
+}
+
+message AcceptFriendResponse { FriendState state = 1; }
+
+message RemoveFriendRequest {
+  string account_id = 1;     // either side may remove
+  string other_id = 2;
+}
+
+message RemoveFriendResponse {}
+
+message ListFriendsRequest { string account_id = 1; }
+
+message ListFriendsResponse {
+  repeated Friend friends = 1;
+}
+
+message Friend {
+  string account_id = 1;
+  string display_name = 2;
+  int64 last_seen_unix = 3; // latest recorded authentication or adapter activity; 0 = unknown
+}
+
+message ListIncomingRequestsRequest { string account_id = 1; }
+
+message ListOutgoingRequestsRequest { string account_id = 1; }
+
+message ListOutgoingRequestsResponse {
+  repeated Friend addressees = 1;
+}
+
+message ListIncomingRequestsResponse {
+  repeated Friend requesters = 1;
+}
+
+message GetRelationshipRequest {
+  string account_id = 1;   // viewpoint
+  string other_id = 2;
+}
+
+message GetRelationshipResponse { Relationship relationship = 1; }
+
+enum Relationship {
+  RELATIONSHIP_UNSPECIFIED = 0;
+  RELATIONSHIP_NONE = 1;
+  RELATIONSHIP_PENDING_INCOMING = 2;  // other requested account_id
+  RELATIONSHIP_PENDING_OUTGOING = 3;  // account_id requested other
+  RELATIONSHIP_FRIENDS = 4;
+  RELATIONSHIP_BLOCKED_BY_SELF = 5;
+  RELATIONSHIP_BLOCKED_BY_OTHER = 6;
+}
+
+message CheckInteractionRequest {
+  string actor_id = 1;
+  string target_id = 2;
+  InteractionKind kind = 3;
+}
+
+enum InteractionKind {
+  INTERACTION_KIND_UNSPECIFIED = 0;
+  INTERACTION_KIND_DISCOVER = 1; // e.g. listing the target's session/farm
+  INTERACTION_KIND_INVITE = 2;
+  INTERACTION_KIND_MESSAGE = 3;
+}
+
+message CheckInteractionResponse {
+  bool allowed = 1;
+  DenialReason reason = 2;
+}
+
+enum DenialReason {
+  DENIAL_REASON_UNSPECIFIED = 0;
+  DENIAL_REASON_ALLOWED = 1;
+  DENIAL_REASON_BLOCKED = 2;
+  DENIAL_REASON_NOT_FRIENDS = 3;
+  DENIAL_REASON_ACCOUNT_INACTIVE = 4;
+  DENIAL_REASON_SELF = 5;
+}
+
+message BlockRequest {
+  string blocker_id = 1;
+  string blocked_id = 2;
+}
+
+message BlockResponse {}
+
+message UnblockRequest {
+  string blocker_id = 1;
+  string blocked_id = 2;
+}
+
+message UnblockResponse {}
+
+message ListBlocksRequest { string account_id = 1; }
+
+message BlockedAccount {
+  string account_id = 1;
+  string display_name = 2;
+  int64 blocked_at_unix = 3;
+}
+
+message ListBlocksResponse { repeated BlockedAccount blocked = 1; }
+
+enum FriendState {
+  FRIEND_STATE_UNSPECIFIED = 0;
+  FRIEND_STATE_PENDING = 1;
+  FRIEND_STATE_ACCEPTED = 2;
+}

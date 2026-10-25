@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package openpak.account.v1;
+
+import "openpak/account/v1/account.proto";
+
+option go_package = "openpak/account/proto/openpak/account/v1;accountv1";
+
+// Moderation (website contract requests CR-5, CR-6). Internal-key
+// authenticated like every other service; everything except FileReport is
+// also home-only: a region node's key cannot search accounts, ban, or work
+// the reports queue.
+service Moderation {
+  // Find accounts by exact id, email or display-name substring
+  // (case-insensitive), or exact link subject in any namespace. Deleted
+  // accounts are never returned. limit defaults to 20, capped at 100.
+  rpc SearchAccounts(SearchAccountsRequest) returns (SearchAccountsResponse);
+  // Ban or unban. Banning revokes every web session and emits account_banned;
+  // unbanning emits account_unbanned (the existing invalidation events, so
+  // adapters kill live console sessions). reason and actor are required and
+  // audited in the core, in the same transaction as the change. NotFound for
+  // unknown, deleted or deletion-pending accounts.
+  rpc SetAccountBanned(SetAccountBannedRequest) returns (SetAccountBannedResponse);
+  // File a report against an account (adapters and the website). Filing the
+  // same reporter/subject/kind again while it is open returns the open one.
+  rpc FileReport(FileReportRequest) returns (FileReportResponse);
+  // The queue: open reports oldest first; resolved or all newest first.
+  // limit defaults to 20, capped at 500.
+  rpc ListReports(ListReportsRequest) returns (ListReportsResponse);
+  // Close an open report. FailedPrecondition when it is already resolved.
+  rpc ResolveReport(ResolveReportRequest) returns (ResolveReportResponse);
+}
+
+message SearchAccountsRequest {
+  string query = 1;
+  int32 limit = 2;
+}
+
+message ModeratedAccount {
+  string account_id = 1;
+  string email = 2;
+  string display_name = 3;
+  AccountStatus status = 4;
+  bool email_verified = 5;
+  int64 created_at_unix = 6;
+  string ban_reason = 7;                 // reason of the latest ban; empty unless banned
+  repeated string matched_subjects = 8;  // "namespace:subject" of links the query matched exactly
+}
+
+message SearchAccountsResponse { repeated ModeratedAccount accounts = 1; }
+
+message SetAccountBannedRequest {
+  string account_id = 1;
+  bool banned = 2;
+  string reason = 3; // required, up to 2000 characters
+  string actor = 4;  // required: who did it, as the calling surface names them (e.g. the admin's account id)
+}
+
+message SetAccountBannedResponse { AccountStatus status = 1; }
+
+enum ReportStatus {
+  REPORT_STATUS_UNSPECIFIED = 0; // in ListReports: every status
+  REPORT_STATUS_OPEN = 1;
+  REPORT_STATUS_RESOLVED = 2;
+}
+
+message Report {
+  string report_id = 1;
+  string reporter_id = 2;
+  string reporter_display_name = 3;
+  string subject_account_id = 4;
+  string subject_display_name = 5;
+  string kind = 6;
+  string detail = 7;
+  ReportStatus status = 8;
+  string resolution = 9;
+  string resolved_by = 10;
+  int64 created_at_unix = 11;
+  int64 resolved_at_unix = 12; // 0 while open
+}
+
+message FileReportRequest {
+  string reporter_id = 1;        // account id of whoever reports
+  string subject_account_id = 2; // account id being reported
+  string kind = 3;               // slug, ^[a-z][a-z0-9_]{0,31}$, e.g. "harassment", "cheating", "name", "avatar", "other"
+  string detail = 4;             // free text, up to 2000 characters
+}
+
+message FileReportResponse { Report report = 1; }
+
+message ListReportsRequest {
+  ReportStatus status = 1;
+  int32 limit = 2;
+}
+
+message ListReportsResponse { repeated Report reports = 1; }
+
+message ResolveReportRequest {
+  string report_id = 1;
+  string resolution = 2; // required, up to 2000 characters
+  string actor = 3;      // required
+}
+
+message ResolveReportResponse { Report report = 1; }
