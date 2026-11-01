@@ -18,6 +18,7 @@ var profileDomainPattern = regexp.MustCompile(`^[a-z]{2}\.np\.(np|community)\.pl
 func (s *Service) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /np/resource/title/{title}/matching/{resource}", s.matchingResource)
 	mux.HandleFunc("GET /a/{cap}", s.avatar)
+	mux.Handle("GET /nsx/", nsxHandler())
 	mux.HandleFunc("POST /basic_view/sec/get_self_profile", s.profile)
 	mux.HandleFunc("POST /basic_view/func/get_profile", s.friendProfile)
 	mux.HandleFunc("POST /basic_update/sec/update_ptl", s.update)

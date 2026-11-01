@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nsx rev="1" anno="max-age=3600">
+ <spc id="openpak">
+  <mtrl id="openpak-welcome-1">
+   <name>OpenPak</name>
+   <owner>OpenPak</owner>
+   <desc>Welcome to OpenPak</desc>
+   <url>https://nsx.sec.np.dl.playstation.net/nsx/sec/Xz78TMQ1Uf31VCYr/img/openpak-256.png</url>
+  </mtrl>
+ </spc>
+</nsx>
