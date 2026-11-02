@@ -29,3 +29,7 @@ Shared np-common code is vendored;
 refresh with sibling np-common present using `GOWORK=off go mod vendor`.
 
 Release tags publish `ghcr.io/openpak/np-community`.
+
+## Operator tools
+
+`cmd/np-identities` (list, migrate, inspect roster) and `cmd/np-avatar-backfill` (fill missing core avatars from the website). Migration: [np-account service split](https://github.com/openpak/np-account/blob/main/docs/service-split.md).

@@ -31,7 +31,6 @@ GOWORK=off go run -mod=vendor ./cmd/np-community
 
 - [Protocol](docs/protocol.md)
 - [Deploy](docs/deploy.md)
-- [Notes](docs/notes.md)
 - [Wire provenance](docs/provenance.md)
 
 ## Licence

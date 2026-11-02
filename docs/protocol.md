@@ -32,3 +32,7 @@ Shape, from the parser (attribute vs child as the firmware reads them):
 
 The root element name and the `from`/`until`/`lastm` date format are not confirmed; a value
 the firmware cannot parse leaves the item always valid.
+
+## Scope
+
+Profiles, public avatar capabilities, canonical core friends and leased XMPP presence. No local identity or relationship database; profile and XMPP authentication verify np-account tickets and current core standing.
