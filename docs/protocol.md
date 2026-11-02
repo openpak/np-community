@@ -56,6 +56,17 @@ the firmware cannot parse leaves the item always valid.
   names, such as `Online on Switch (Harbor)` or `Online on PS3 (Pier)`. Hardware and unknown clients omit the
   parentheses. Reported title IDs follow the platform label when present.
 
+## Friend messages
+
+`<message>` stanzas (text, game invitations and game-data attachments up to the 32 KiB stanza budget) are routed between
+accepted friends only. The stream identity sets `from` (client values are discarded, as is any client-sent
+`http://playstation.net/np/rt/stored` marker). The recipient's open streams get the stanza at once; with none open it is
+stored (Postgres table `np_messages`, 100 per recipient, 30 days) and replayed after the recipient's
+`<iq><fetch xmlns="http://playstation.net/np/rt/stored"/></iq>` with `<x xmlns=".../stored" id stamp expire delay="1"/>`,
+then deleted. Errors come back as `<message type="error">`: `not-acceptable` (not a friend), `policy-violation` (too large),
+and `resource-constraint` with `<x xmlns=".../max_exceed"/>` for a full mailbox. Wire shapes are static RE only; see the
+private research note `ps3/messaging-protocol.md`. The `uploader` attachment host is not served here.
+
 ## Scope
 
-Profiles, public avatar capabilities, canonical core friends and leased XMPP presence. No local identity or relationship database; profile and XMPP authentication verify np-account tickets and current core standing.
+Profiles, public avatar capabilities, canonical core friends, leased XMPP presence and the offline message queue (the only local state). No local identity or relationship database; profile and XMPP authentication verify np-account tickets and current core standing.

@@ -32,6 +32,7 @@ type client struct {
 	conn             net.Conn
 	writeMu          sync.Mutex
 	stateMu          sync.Mutex
+	storedMu         sync.Mutex
 	id               ticket.Identity
 	jid              string
 	bound, available bool
@@ -272,8 +273,11 @@ func (c *client) handle(ctx context.Context, n node) error {
 			}
 			return c.rosterReply(ctx, n)
 		}
-		if n.child("http://playstation.net/np/rt/stored", "fetch") != nil {
-			return c.iq(n, `<fetch xmlns="http://playstation.net/np/rt/stored"/>`)
+		if n.child(storedNS, "fetch") != nil {
+			if e := c.iq(n, `<fetch xmlns="`+storedNS+`"/>`); e != nil {
+				return e
+			}
+			return c.sendStored(ctx)
 		}
 		if q := n.child("jabber:iq:privacy", "query"); q != nil && kind == "get" {
 			return c.iq(n, `<query xmlns="jabber:iq:privacy"/>`)
@@ -288,7 +292,7 @@ func (c *client) handle(ctx context.Context, n node) error {
 		}
 		return c.onPresence(ctx, n)
 	case "message":
-		return c.send(`<message type="error" to=` + attr(c.jid) + `><error type="cancel"><service-unavailable xmlns="` + stanzaNS + `"/></error></message>`)
+		return c.handleMessage(ctx, n)
 	}
 	return nil
 }

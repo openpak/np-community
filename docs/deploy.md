@@ -33,3 +33,8 @@ Release tags publish `ghcr.io/openpak/np-community`.
 ## Operator tools
 
 `cmd/np-identities` (list, migrate, inspect roster) and `cmd/np-avatar-backfill` (fill missing core avatars from the website). Migration: [np-account service split](https://github.com/openpak/np-account/blob/main/docs/service-split.md).
+
+## Offline friend messages
+
+Set `NP_DATABASE_URL` to a dedicated Postgres database (table `np_messages` is created at start). Without it messages for
+offline friends are kept in process memory and lost on restart. The container needs network access to Postgres.

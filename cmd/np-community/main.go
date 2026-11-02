@@ -17,6 +17,8 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
@@ -43,6 +45,21 @@ func run() error {
 	standing := events.NewState()
 	gate := events.Gate{Client: core, State: standing}
 	svc := &community.Service{Core: gate, Tickets: signer, Client: nphttp.Env("NP_SESSION_CLIENT", "ps3"), OS: os.Getenv("NP_SESSION_OS")}
+	if dbURL := os.Getenv("NP_DATABASE_URL"); dbURL != "" {
+		pool, err := pgxpool.New(ctx, dbURL)
+		if err != nil {
+			return err
+		}
+		defer pool.Close()
+		store := &community.PGStore{DB: pool}
+		if err := store.Migrate(ctx); err != nil {
+			return err
+		}
+		svc.Messages = store
+	} else {
+		slog.Warn("NP_DATABASE_URL unset: offline friend messages are kept in memory and lost on restart")
+		svc.Messages = &community.MemoryStore{}
+	}
 	if path := os.Getenv("NP_TROPHY_RESOURCE_KEY"); path != "" {
 		svc.ResourceKey, err = os.ReadFile(path)
 		if err != nil {
