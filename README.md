@@ -30,7 +30,6 @@ GOWORK=off go run -mod=vendor ./cmd/np-community
 ## Docs
 
 - [Protocol](docs/protocol.md)
-- [Evidence](docs/evidence.md)
 - [Deploy](docs/deploy.md)
 - [Notes](docs/notes.md)
 - [Wire provenance](docs/provenance.md)
