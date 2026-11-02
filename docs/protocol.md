@@ -33,6 +33,29 @@ Shape, from the parser (attribute vs child as the firmware reads them):
 The root element name and the `from`/`until`/`lastm` date format are not confirmed; a value
 the firmware cannot parse leaves the item always valid.
 
+## Profiles, roster and XMPP
+
+- Every active OpenPak user gets a real `np` link even without a PS3 login. A background reconciler scans the core's
+  home-only `Identity.ListAccounts` directory at startup and every minute; existing IDs never change and a display-name
+  collision gets a stable account-derived suffix. Friend-roster reads provision missing links immediately.
+- The roster comes from core `Social.ListFriends`, filtered through `CheckInteraction` and active-account checks. Pending
+  requests use the core's request/accept lifecycle. Presence registers a core session only after available presence,
+  renews its lease and expires on unavailable or disconnect. Graph and presence changes are projected every ten seconds;
+  removals and blocks produce roster removal and unavailable presence.
+- Stanza input, nesting, deadlines, writes and connection count are bounded; unsupported messages and IQ operations
+  fail explicitly. The stream sends whitespace keepalives every twenty seconds (TCP ACKs alone do not keep VSH's
+  receive-idle timer alive) and incoming whitespace refreshes the idle deadline.
+- Avatar URLs come from the core's validated 256px PNG; short signed capabilities fit VSH's URL buffer. HTTP
+  `/basic_view/func/get_profile` and `/a/` are served as well as HTTPS self-profile. Public friend-profile requests carry
+  no ticket and return public profile data only; account status is checked on profile and image reads.
+- Firmware can serialize friend JIDs with the viewer's region, so the PlayStation domain shape is validated independently
+  of the target account country.
+- `cmd/np-avatar-backfill` copies the website's deterministic default PNGs (both sizes) into the core for accounts with
+  no avatar; existing avatars are skipped.
+- Online friend status uses the core session namespace for the console name and the reported client for known emulator
+  names, such as `Online on Switch (Harbor)` or `Online on PS3 (Pier)`. Hardware and unknown clients omit the
+  parentheses. Reported title IDs follow the platform label when present.
+
 ## Scope
 
 Profiles, public avatar capabilities, canonical core friends and leased XMPP presence. No local identity or relationship database; profile and XMPP authentication verify np-account tickets and current core standing.
