@@ -5,6 +5,14 @@ Routes: `/basic_view/sec/get_self_profile`, `/basic_view/func/get_profile`,
 `/np/resource/title/{title}/matching/{resource}`, `/healthz`.
 No native login or trophy routes are registered here.
 
+## Matching2 discovery
+
+`GET /np/resource/title/{commid}/matching/{commid}-matching.xml` returns a signed resource.
+Default: `<matching2 status="maintenance" titleid="..."/>`. With `NP_MATCHING_AGENT=host:port` it is
+`<matching2 status="alive" titleid="..."><agent-fqdn id="1" status="alive" port="PORT">host</agent-fqdn></matching2>`;
+the console then opens plain TCP to `host:PORT` and TLS to `host:443`. No agent implementation
+exists; point it only at `matching2-recorder`.
+
 ## NSX feeds
 
 `GET`/`HEAD https://nsx.sec.<env>.dl.playstation.net/nsx/sec/Xz78TMQ1Uf31VCYr/c/NSXWSV/NSXWSV-PN.P3.[GAME.|VIDEO.]<CC>-<FEED>.xml`,

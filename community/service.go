@@ -37,6 +37,7 @@ type Core interface {
 type Service struct {
 	Core          Core
 	Tickets       *ticket.Signer
+	MatchingAgent string // NP_MATCHING_AGENT "host:port"; empty = Matching2 maintenance
 	ResourceKey   []byte // owner-local firmware resource compatibility key
 	Client, OS    string
 	AvatarBaseURL string

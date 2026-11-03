@@ -2,10 +2,12 @@ package community
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"openpak/np-common/resource"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var matchingTitlePattern = regexp.MustCompile(`^[A-Z]{4}[0-9]{5}_[0-9]{2}$`)
@@ -26,9 +28,26 @@ func (s *Service) matchingResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	xml := []byte(fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?><matching2 status="maintenance" titleid="%s"/>`, title))
+	if host, port, ok := parseMatchingAgent(s.MatchingAgent); ok {
+		xml = []byte(fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?><matching2 status="alive" titleid="%s"><agent-fqdn id="1" status="alive" port="%d">%s</agent-fqdn></matching2>`, title, port, host))
+	}
 	body := resource.Sign(xml, s.ResourceKey)
 	w.Header().Set("Content-Type", "text/xml; charset=utf-8")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	w.Header().Set("Cache-Control", "no-store")
 	w.Write(body)
+}
+
+// parseMatchingAgent splits NP_MATCHING_AGENT ("hostname:port"). Empty or malformed
+// means no agent: the resource keeps reporting maintenance.
+func parseMatchingAgent(v string) (host string, port int, ok bool) {
+	h, p, err := net.SplitHostPort(v)
+	if err != nil || h == "" || strings.ContainsAny(h, "<>&\"' ") {
+		return "", 0, false
+	}
+	n, err := strconv.Atoi(p)
+	if err != nil || n < 0 || n > 65535 {
+		return "", 0, false
+	}
+	return h, n, true
 }

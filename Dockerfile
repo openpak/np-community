@@ -5,6 +5,7 @@ ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY . .
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=vendor -trimpath -ldflags="-s -w" -o /out/np-community ./cmd/np-community
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -mod=vendor -trimpath -ldflags="-s -w" -o /out/matching2-recorder ./cmd/matching2-recorder
 
 FROM alpine:3.22
 LABEL org.opencontainers.image.source="https://github.com/openpak/np-community"
@@ -12,4 +13,5 @@ RUN addgroup -S app && adduser -S -G app app && apk add --no-cache ca-certificat
 USER app
 COPY --from=build /out/np-community /usr/local/bin/np-community
 EXPOSE 8003 8443 8523
+COPY --from=build /out/matching2-recorder /usr/local/bin/matching2-recorder
 ENTRYPOINT ["/usr/local/bin/np-community"]

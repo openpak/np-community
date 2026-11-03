@@ -66,6 +66,7 @@ func run() error {
 		svc.Messages = &community.MemoryStore{}
 		svc.Settings = &community.MemorySettings{}
 	}
+	svc.MatchingAgent = os.Getenv("NP_MATCHING_AGENT")
 	if path := os.Getenv("NP_TROPHY_RESOURCE_KEY"); path != "" {
 		svc.ResourceKey, err = os.ReadFile(path)
 		if err != nil {
