@@ -37,7 +37,6 @@ Release tags publish `ghcr.io/openpak/np-community`.
 ## Friend messages
 
 Set `NP_CHAT_ADDR` (for example `openpak-chat:20131`, on the same container network) and `NP_CHAT_KEY` (chat's `CHAT_INTERNAL_KEY`);
-without them messages answer `service-unavailable`. Set `NP_DATABASE_URL` to a dedicated Postgres database (tables `np_chat_cursor`,
-`np_chat_follow` and `np_message_ext` are created at start; the retired `np_messages` is dropped). Without it the cursors are kept in
-process memory and lost on restart (the follower then starts at the head of the core stream and pending messages are not replayed).
+without them messages answer `service-unavailable`. `NP_DATABASE_URL` is required (the service refuses to start without it). Point it at a dedicated Postgres database (tables `np_chat_cursor`,
+`np_chat_follow` and `np_message_ext` are created at start; the retired `np_messages` is dropped).
 The container needs network access to Postgres and chat.

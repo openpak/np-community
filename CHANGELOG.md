@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.4 - 2026-11-03
+
+- `NP_DATABASE_URL` is now required: the service exits at start without it instead of falling back to in-memory cursors and settings. Pool capped at 3 connections.
+
 ## 0.3.3
 
 - Friend messages now go through the core-neutral chat service (`NP_CHAT_ADDR`, `NP_CHAT_KEY`): a PS3 message reaches friends

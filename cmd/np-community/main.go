@@ -45,27 +45,31 @@ func run() error {
 	standing := events.NewState()
 	gate := events.Gate{Client: core, State: standing}
 	svc := &community.Service{Core: gate, Tickets: signer, Client: nphttp.Env("NP_SESSION_CLIENT", "ps3"), OS: os.Getenv("NP_SESSION_OS")}
-	if dbURL := os.Getenv("NP_DATABASE_URL"); dbURL != "" {
-		pool, err := pgxpool.New(ctx, dbURL)
-		if err != nil {
-			return err
-		}
-		defer pool.Close()
-		inbox := &community.PGInbox{DB: pool}
-		if err := inbox.Migrate(ctx); err != nil {
-			return err
-		}
-		svc.Inbox = inbox
-		settings := &community.PGSettings{DB: pool}
-		if err := settings.Migrate(ctx); err != nil {
-			return err
-		}
-		svc.Settings = settings
-	} else {
-		slog.Warn("NP_DATABASE_URL unset: message cursors and attachments are kept in memory and lost on restart")
-		svc.Inbox = &community.MemoryInbox{}
-		svc.Settings = &community.MemorySettings{}
+	dbURL := os.Getenv("NP_DATABASE_URL")
+	if dbURL == "" {
+		return fmt.Errorf("NP_DATABASE_URL is required (message cursors and attachments live in Postgres)")
 	}
+	poolCfg, err := pgxpool.ParseConfig(dbURL)
+	if err != nil {
+		return err
+	}
+	poolCfg.MaxConns = 3
+	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
+	inbox := &community.PGInbox{DB: pool}
+	if err := inbox.Migrate(ctx); err != nil {
+		return err
+	}
+	svc.Inbox = inbox
+	settings := &community.PGSettings{DB: pool}
+	if err := settings.Migrate(ctx); err != nil {
+		return err
+	}
+	svc.Settings = settings
+	slog.Info("using Postgres for message cursors and settings")
 	if addr := os.Getenv("NP_CHAT_ADDR"); addr != "" {
 		key := os.Getenv("NP_CHAT_KEY")
 		if key == "" {

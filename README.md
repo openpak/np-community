@@ -30,8 +30,7 @@ GOWORK=off go run -mod=vendor ./cmd/np-community
 ## Friend messages
 
 Messages go through the neutral chat service so they reach friends on every OpenPak network. Set `NP_CHAT_ADDR`
-(`host:port`, gRPC) and `NP_CHAT_KEY` (chat's internal key); unset, messages answer `service-unavailable`. With
-`NP_DATABASE_URL` the delivery cursors and attachments persist (tables `np_chat_cursor`, `np_chat_follow`,
+(`host:port`, gRPC) and `NP_CHAT_KEY` (chat's internal key); unset, messages answer `service-unavailable`. `NP_DATABASE_URL` is required; the delivery cursors and attachments persist (tables `np_chat_cursor`, `np_chat_follow`,
 `np_message_ext`; the old `np_messages` queue is dropped on start). The chat client is generated into
 `internal/chatpb` from `openpak/chat`'s proto (`protoc --go_out --go-grpc_out`, package name unchanged).
 
