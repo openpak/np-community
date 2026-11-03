@@ -167,6 +167,7 @@ google.golang.org/protobuf/types/known/timestamppb
 openpak/np-common/coreclient
 openpak/np-common/events
 openpak/np-common/fakecore
+openpak/np-common/httplog
 openpak/np-common/identity
 openpak/np-common/nphttp
 openpak/np-common/onlineid

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.5 - 2026-11-03
+
+- Every request logs one stderr line, `http <method> <path> -> <status> <duration>ms` (np-common v0.1.2 `httplog`,
+  through `nphttp.Logging`): no query, headers, credentials or bodies; `/healthz` skipped; the PS3 status header is
+  appended as `ps3_status=<n>` when set. Replaces the slog "NP HTTP" line, which had no duration.
+
 ## 0.3.4 - 2026-11-03
 
 - `NP_DATABASE_URL` is now required: the service exits at start without it instead of falling back to in-memory cursors and settings. Pool capped at 3 connections.
