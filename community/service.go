@@ -42,7 +42,8 @@ type Service struct {
 	Client, OS    string
 	AvatarBaseURL string
 	Settings      SettingsStore // message settings; nil answers result ff
-	Messages      MessageStore  // offline friend messages; nil rejects them when the recipient is offline
+	Chat          Chat          // core-neutral chat (NP_CHAT_ADDR); nil answers friend messages with service-unavailable
+	Inbox         InboxStore    // delivery cursors and PS3-only message extensions; needed with Chat
 }
 
 func (s *Service) Verify(ctx context.Context, raw []byte) (ticket.Identity, error) {

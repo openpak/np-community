@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package openpak.chat.v1;
+
+option go_package = "openpak/np-community/internal/chatpb;chatpb";
+
+// The neutral chat store (universal-social-prd §4d, platform-wiiu-prd WU-4).
+// A message is {from_account, to_account, sent_at, kind, body}: no console
+// formatting, no Miiverse markup, no NEX framing. Delivery to a console is
+// the receiving family's adapter's job, riding the core's account-event
+// stream as type "message"; this service only holds the messages and
+// announces that they exist.
+//
+// Accounts are core account ids. Only friendship is checked here (the core's
+// answer, applied before anything is stored); visibility beyond that is the
+// caller's problem.
+service Chat {
+  // Send stores one message and emits the core's "message" event to the
+  // recipient. Idempotent per (from_account, dedup_key) when a dedup_key is
+  // supplied, so an adapter retrying after a dropped reply never doubles.
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc GetMessage(GetMessageRequest) returns (GetMessageResponse);
+  // History of one conversation, oldest first, after_id exclusive.
+  rpc ListMessages(ListMessagesRequest) returns (ListMessagesResponse);
+  // One row per peer, newest message per peer.
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+}
+
+message Message {
+  int64  id          = 1;
+  string from_account = 2;
+  string to_account  = 3;
+  string kind        = 4; // text | painting | screenshot | app_data
+  string body        = 5; // kind's payload; plain text for "text"
+  int64  sent_at_unix = 6;
+}
+
+message SendMessageRequest {
+  string from_account = 1;
+  string to_account   = 2;
+  string kind         = 3; // empty = text
+  string body         = 4;
+  string dedup_key    = 5; // optional; sender-scoped idempotency
+}
+
+message SendMessageResponse {
+  Message message      = 1;
+  bool    duplicate    = 2; // the dedup_key was already stored; not re-announced
+}
+
+message GetMessageRequest {
+  int64 id = 1;
+}
+
+message GetMessageResponse {
+  Message message = 1;
+}
+
+message ListMessagesRequest {
+  string account  = 1; // the caller's own account (either side of the talk)
+  string peer     = 2;
+  int64  after_id = 3; // exclusive; 0 = from the beginning
+  int32  limit    = 4; // server-capped at 200, newest-in-window wins
+}
+
+message ListMessagesResponse {
+  repeated Message messages = 1;
+}
+
+message ListConversationsRequest {
+  string account = 1;
+}
+
+message Conversation {
+  string  peer            = 1;
+  Message newest          = 2;
+  int64   unread_count    = 3; // reserved; unread tracking arrives with read receipts
+}
+
+message ListConversationsResponse {
+  repeated Conversation conversations = 1;
+}

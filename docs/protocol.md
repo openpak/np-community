@@ -66,14 +66,44 @@ the firmware cannot parse leaves the item always valid.
 
 ## Friend messages
 
-`<message>` stanzas (text, game invitations and game-data attachments up to the 32 KiB stanza budget) are routed between
-accepted friends only. The stream identity sets `from` (client values are discarded, as is any client-sent
-`http://playstation.net/np/rt/stored` marker). The recipient's open streams get the stanza at once; with none open it is
-stored (Postgres table `np_messages`, 100 per recipient, 30 days) and replayed after the recipient's
-`<iq><fetch xmlns="http://playstation.net/np/rt/stored"/></iq>` with `<x xmlns=".../stored" id stamp expire delay="1"/>`,
-then deleted. Errors come back as `<message type="error">`: `not-acceptable` (not a friend), `policy-violation` (too large),
-and `resource-constraint` with `<x xmlns=".../max_exceed"/>` for a full mailbox. Wire shapes are static RE only; see the
+Friend messages ride the core-neutral chat service (`NP_CHAT_ADDR`, gRPC `openpak.chat.v1.Chat`, key `NP_CHAT_KEY`), so a
+PS3 message reaches the friend on whichever OpenPak network they use, and the reverse. np-community keeps no message queue;
+chat is the store.
+
+**Outbound** (`<message>` from a PS3 to a roster friend; `from` and any client `stored` marker are discarded):
+
+- `chat.SendMessage(from = sender account, to = recipient account, kind = text, body, dedup_key)`.
+- `body` = `subject` + `\n` + `body` (only the one present; `[attachment]` when the stanza has attachments but no text; an
+  empty stanza is `bad-request`). Chat caps bodies at 64 KiB; the stanza budget stays 24 KiB.
+- `dedup_key` = stanza id + recipient + hash of subject/body/attachments, so a repeated stanza is stored once.
+- Attachments (`np/rt/content`, `np/rt/message message_kind`, ...) cannot ride chat. The original subject/body split,
+  stanza id/type and the other child elements are stored in Postgres `np_message_ext` (keyed by chat message id, pruned after 35
+  days) and handed back only to PS3 recipients. Friends on other networks get the text.
+- Errors come back as `<message type="error">`: `not-acceptable` (not a friend, per the roster or chat), `policy-violation`
+  (too large or rejected by chat), `bad-request`, `service-unavailable` (chat not configured), and `wait` +
+  `internal-server-error` when chat is unreachable (the stanza is not retried or stored here).
+
+**Inbound**: the service follows the core's event stream (the position is kept in `np_chat_follow`; the first start jumps to
+the head so older history is not replayed). On `type=message` for an account it fetches the message with `GetMessage`. If
+the account has a stream open the message is written to every open stream at once, otherwise nothing happens and it stays
+pending. Per-account delivery state is `np_chat_cursor` (highest delivered chat id; an account gets its row at its first message
+event, so pre-existing chat history is never pushed to a console).
+
+**Replay**: on the recipient's `<iq><fetch xmlns="http://playstation.net/np/rt/stored"/></iq>` (and ahead of any live message)
+everything after the cursor is sent oldest first with `<x xmlns=".../stored" id=<chat id> stamp=<sent_at> expire=<sent_at + 30 days> delay="1"/>`;
+the cursor advances per message written. At most 100 (newest) are replayed; older and expired (30 days) ones are skipped.
+
+Stanza shape of a message that did not come from a PS3: `from` = sender's JID/ps3, `id` = `chat-<chat id>`, `type=chat`,
+`<subject>` = first line and `<body>` = the rest (body only when there is one line), plus
+`<x xmlns="http://playstation.net/np/rt/message" message_kind="txt"/>` (the value is a guess; the firmware only limits it to 3
+characters). Paintings, screenshots and app data arrive as a label (`[painting]`). Wire shapes are static RE only; see the
 private research note `ps3/messaging-protocol.md`. The `uploader` attachment host is not served here.
+
+Known limit: the cursor is a high-water mark, so a message committed by chat after a higher id was already delivered to the same
+recipient (two sends in the same few milliseconds) is not replayed.
+
+Logs (no bodies): `NP stream authenticated`, `NP roster sent`, `NP presence set`, `NP message out`, `NP message in`,
+`NP message pending`, `NP stored fetch`, each with `account=<core account id>`.
 
 ## Message settings
 
@@ -87,4 +117,4 @@ messages go to accepted friends only. Static RE only; see the private research n
 
 ## Scope
 
-Profiles, public avatar capabilities, canonical core friends, leased XMPP presence and the offline message queue (the only local state). No local identity or relationship database; profile and XMPP authentication verify np-account tickets and current core standing.
+Profiles, public avatar capabilities, canonical core friends, leased XMPP presence and, in Postgres, the chat delivery cursors and PS3 message attachments (the only local state). No local identity or relationship database; profile and XMPP authentication verify np-account tickets and current core standing.

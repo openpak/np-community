@@ -34,7 +34,10 @@ Release tags publish `ghcr.io/openpak/np-community`.
 
 `cmd/np-identities` (list, migrate, inspect roster) and `cmd/np-avatar-backfill` (fill missing core avatars from the website). Migration: [np-account service split](https://github.com/openpak/np-account/blob/main/docs/service-split.md).
 
-## Offline friend messages
+## Friend messages
 
-Set `NP_DATABASE_URL` to a dedicated Postgres database (table `np_messages` is created at start). Without it messages for
-offline friends are kept in process memory and lost on restart. The container needs network access to Postgres.
+Set `NP_CHAT_ADDR` (for example `openpak-chat:20131`, on the same container network) and `NP_CHAT_KEY` (chat's `CHAT_INTERNAL_KEY`);
+without them messages answer `service-unavailable`. Set `NP_DATABASE_URL` to a dedicated Postgres database (tables `np_chat_cursor`,
+`np_chat_follow` and `np_message_ext` are created at start; the retired `np_messages` is dropped). Without it the cursors are kept in
+process memory and lost on restart (the follower then starts at the head of the core stream and pending messages are not replayed).
+The container needs network access to Postgres and chat.

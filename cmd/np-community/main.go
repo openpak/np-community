@@ -51,20 +51,35 @@ func run() error {
 			return err
 		}
 		defer pool.Close()
-		store := &community.PGStore{DB: pool}
-		if err := store.Migrate(ctx); err != nil {
+		inbox := &community.PGInbox{DB: pool}
+		if err := inbox.Migrate(ctx); err != nil {
 			return err
 		}
-		svc.Messages = store
+		svc.Inbox = inbox
 		settings := &community.PGSettings{DB: pool}
 		if err := settings.Migrate(ctx); err != nil {
 			return err
 		}
 		svc.Settings = settings
 	} else {
-		slog.Warn("NP_DATABASE_URL unset: offline friend messages are kept in memory and lost on restart")
-		svc.Messages = &community.MemoryStore{}
+		slog.Warn("NP_DATABASE_URL unset: message cursors and attachments are kept in memory and lost on restart")
+		svc.Inbox = &community.MemoryInbox{}
 		svc.Settings = &community.MemorySettings{}
+	}
+	if addr := os.Getenv("NP_CHAT_ADDR"); addr != "" {
+		key := os.Getenv("NP_CHAT_KEY")
+		if key == "" {
+			return fmt.Errorf("NP_CHAT_KEY is required with NP_CHAT_ADDR")
+		}
+		chat, err := community.DialChat(addr, key)
+		if err != nil {
+			return err
+		}
+		defer chat.Close()
+		svc.Chat = chat
+		slog.Info("chat connected", "addr", addr)
+	} else {
+		slog.Warn("NP_CHAT_ADDR unset: friend messages answer service-unavailable")
 	}
 	svc.MatchingAgent = os.Getenv("NP_MATCHING_AGENT")
 	if path := os.Getenv("NP_TROPHY_RESOURCE_KEY"); path != "" {
@@ -92,6 +107,7 @@ func run() error {
 	xs := &xmpp.Server{Service: svc, Log: slog.Default()}
 	consumer := &events.Consumer{Core: core, State: standing, Log: slog.Default(), Cut: xs.Disconnect}
 	go consumer.Run(ctx, 5*time.Second)
+	go xs.FollowChat(ctx, core, 5*time.Second)
 	if os.Getenv("NP_PROVISION_ACCOUNTS") != "false" {
 		go svc.Reconcile(ctx, core, slog.Default())
 	}

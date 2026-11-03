@@ -18,7 +18,7 @@ OpenPak's PS3 Community Server.
 | `/a/{cap}` | Public avatar capability route |
 | `/np/resource/title/{title}/matching/{resource}` | Matching2 discovery (maintenance unless `NP_MATCHING_AGENT=host:port` is set) |
 | `/healthz` | Health check |
-| XMPP, `NP_XMPP_ADDR` (default `:8523`) | Core friends roster and leased presence |
+| XMPP, `NP_XMPP_ADDR` (default `:8523`) | Core friends roster, leased presence and friend messages (via chat, `NP_CHAT_ADDR`) |
 
 ## Run
 
@@ -26,6 +26,14 @@ OpenPak's PS3 Community Server.
 # Export values from example.env after supplying operator credentials.
 GOWORK=off go run -mod=vendor ./cmd/np-community
 ```
+
+## Friend messages
+
+Messages go through the neutral chat service so they reach friends on every OpenPak network. Set `NP_CHAT_ADDR`
+(`host:port`, gRPC) and `NP_CHAT_KEY` (chat's internal key); unset, messages answer `service-unavailable`. With
+`NP_DATABASE_URL` the delivery cursors and attachments persist (tables `np_chat_cursor`, `np_chat_follow`,
+`np_message_ext`; the old `np_messages` queue is dropped on start). The chat client is generated into
+`internal/chatpb` from `openpak/chat`'s proto (`protoc --go_out --go-grpc_out`, package name unchanged).
 
 ## Docs
 

@@ -26,13 +26,13 @@ type Server struct {
 	KeepAliveInterval time.Duration
 	mu                sync.Mutex
 	clients           map[*client]struct{}
+	locks             accountLocks
 }
 type client struct {
 	s                *Server
 	conn             net.Conn
 	writeMu          sync.Mutex
 	stateMu          sync.Mutex
-	storedMu         sync.Mutex
 	id               ticket.Identity
 	jid              string
 	bound, available bool
@@ -44,9 +44,11 @@ type client struct {
 }
 
 func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
+	s.mu.Lock()
 	if s.Log == nil {
 		s.Log = slog.Default()
 	}
+	s.mu.Unlock()
 	if s.KeepAliveInterval == 0 {
 		s.KeepAliveInterval = 20 * time.Second
 	}
@@ -174,7 +176,7 @@ func (c *client) run(parent context.Context) {
 		return
 	}
 	go c.maintain(ctx)
-	c.s.Log.Info("NP stream authenticated", "online_id", id.OnlineID)
+	c.s.Log.Info("NP stream authenticated", "account", id.AccountID, "online_id", id.OnlineID)
 	// Incoming whitespace is activity too: XML may wait indefinitely for a stanza.
 	idle.timeout = 15 * time.Minute
 	c.conn.SetReadDeadline(time.Time{})
@@ -412,6 +414,7 @@ func (c *client) onPresence(ctx context.Context, n node) error {
 	c.available = true
 	c.presence = n.Children
 	c.stateMu.Unlock()
+	c.s.Log.Info("NP presence set", "account", c.id.AccountID, "online_id", c.id.OnlineID)
 	return c.refresh(ctx)
 }
 func (c *client) rosterReply(ctx context.Context, n node) error {
@@ -439,7 +442,7 @@ func (c *client) rosterReply(ctx context.Context, n node) error {
 	if e = c.iq(n, b.String()); e != nil {
 		return e
 	}
-	c.s.Log.Info("NP roster sent", "online_id", c.id.OnlineID, "friends", len(friends))
+	c.s.Log.Info("NP roster sent", "account", c.id.AccountID, "online_id", c.id.OnlineID, "friends", len(friends), "pending_out", len(outgoing))
 	return c.refresh(ctx)
 }
 func rosterItem(f community.Friend, pending bool) string {
