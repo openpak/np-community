@@ -23,6 +23,8 @@ func (s *Service) Register(mux *http.ServeMux) {
 	mux.HandleFunc("POST /basic_view/func/get_profile", s.friendProfile)
 	mux.HandleFunc("POST /basic_update/sec/update_ptl", s.update)
 	mux.HandleFunc("POST /basic_update/sec/update_ci", s.update)
+	mux.HandleFunc("POST /friend_list_update/sec/set_message_setting", s.messageSetting(true))
+	mux.HandleFunc("POST /friend_list_view/sec/get_message_setting", s.messageSetting(false))
 }
 
 type requestXML struct {

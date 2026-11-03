@@ -56,9 +56,15 @@ func run() error {
 			return err
 		}
 		svc.Messages = store
+		settings := &community.PGSettings{DB: pool}
+		if err := settings.Migrate(ctx); err != nil {
+			return err
+		}
+		svc.Settings = settings
 	} else {
 		slog.Warn("NP_DATABASE_URL unset: offline friend messages are kept in memory and lost on restart")
 		svc.Messages = &community.MemoryStore{}
+		svc.Settings = &community.MemorySettings{}
 	}
 	if path := os.Getenv("NP_TROPHY_RESOURCE_KEY"); path != "" {
 		svc.ResourceKey, err = os.ReadFile(path)

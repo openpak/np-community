@@ -67,6 +67,16 @@ then deleted. Errors come back as `<message type="error">`: `not-acceptable` (no
 and `resource-constraint` with `<x xmlns=".../max_exceed"/>` for a full mailbox. Wire shapes are static RE only; see the
 private research note `ps3/messaging-protocol.md`. The `uploader` attachment host is not served here.
 
+## Message settings
+
+`POST /friend_list_update/sec/set_message_setting` and `/friend_list_view/sec/get_message_setting`
+(hosts `friend-list-update.ww.<env>.communication.playstation.net` and `friend-list-view.<cc>.<env>.communication.playstation.net`).
+Request `<message-setting platform sv env><ticket/><setting type="N">V</setting>...</message-setting>` (get omits the text);
+reply `<message-setting result="00"><setting type="N">V</setting>...</message-setting>`, with only the types that have a stored
+value (the firmware keeps -1 for the rest). Stored per account as opaque integers in Postgres `np_message_settings`
+(memory without `NP_DATABASE_URL`). The meaning of the type numbers is not in the firmware, so they do not change routing:
+messages go to accepted friends only. Static RE only; see the private research note.
+
 ## Scope
 
 Profiles, public avatar capabilities, canonical core friends, leased XMPP presence and the offline message queue (the only local state). No local identity or relationship database; profile and XMPP authentication verify np-account tickets and current core standing.

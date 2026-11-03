@@ -40,7 +40,8 @@ type Service struct {
 	ResourceKey   []byte // owner-local firmware resource compatibility key
 	Client, OS    string
 	AvatarBaseURL string
-	Messages      MessageStore // offline friend messages; nil rejects them when the recipient is offline
+	Settings      SettingsStore // message settings; nil answers result ff
+	Messages      MessageStore  // offline friend messages; nil rejects them when the recipient is offline
 }
 
 func (s *Service) Verify(ctx context.Context, raw []byte) (ticket.Identity, error) {
