@@ -208,3 +208,16 @@ func (s *Service) messageSetting(set bool) http.HandlerFunc {
 		settingsReply(w, resultOK, b.String())
 	}
 }
+
+func (s *PGSettings) Erase(ctx context.Context, a string) (int, error) {
+	tag, err := s.DB.Exec(ctx, `DELETE FROM np_message_settings WHERE acct = $1`, a)
+	return int(tag.RowsAffected()), err
+}
+
+func (s *MemorySettings) Erase(_ context.Context, a string) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	n := len(s.m[a])
+	delete(s.m, a)
+	return n, nil
+}

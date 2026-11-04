@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 - 2026-11-04
+
+- Account erasure (card #120): `DELETE /internal/accounts/{account_id}/data` (bearer `ACCOUNT_ERASE_KEY`, listener `ERASE_ADDR`,
+  default `:9099`; not served when the key is unset) removes the account's `np_chat_cursor`, `np_message_settings` and
+  `np_message_ext` rows (sent or received) and logs one `account erased` line. Idempotent; other accounts untouched.
+  Also runs on the core `account_deleted` event (np-common `events.Consumer.Purge`).
+- `np_message_ext` gains `sender` and `recipient` account columns (added on start) so a message extension can be matched to
+  the accounts involved. Older rows have no owner and expire with the existing 35-day retention.
+- Decision per table: cursor, settings, extensions are deleted (no authored content others keep here; message text is in chat).
+
 ## 0.3.5 - 2026-11-03
 
 - Every request logs one stderr line, `http <method> <path> -> <status> <duration>ms` (np-common v0.1.2 `httplog`,

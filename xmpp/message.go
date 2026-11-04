@@ -122,6 +122,7 @@ func (c *client) handleMessage(ctx context.Context, n node) error {
 	}
 	if !dup {
 		ext.ChatID = m.ID
+		ext.Sender, ext.Recipient = c.id.AccountID, target.AccountID
 		if e := svc.Inbox.PutExt(ctx, ext); e != nil {
 			c.s.Log.Warn("NP message ext not stored; recipient gets text only", "chat_id", m.ID, "error", e)
 		}

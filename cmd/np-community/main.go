@@ -109,7 +109,7 @@ func run() error {
 		ln = tls.NewListener(ln, front.Config())
 	}
 	xs := &xmpp.Server{Service: svc, Log: slog.Default()}
-	consumer := &events.Consumer{Core: core, State: standing, Log: slog.Default(), Cut: xs.Disconnect}
+	consumer := &events.Consumer{Core: core, State: standing, Log: slog.Default(), Cut: xs.Disconnect, Purge: func(ctx context.Context, a string) error { _, err := svc.Erase(ctx, a); return err }}
 	go consumer.Run(ctx, 5*time.Second)
 	go xs.FollowChat(ctx, core, 5*time.Second)
 	if os.Getenv("NP_PROVISION_ACCOUNTS") != "false" {
@@ -117,6 +117,17 @@ func run() error {
 	}
 	errs := make(chan error, 1)
 	go func() { errs <- xs.Serve(ctx, ln); stop() }()
+	if key := os.Getenv("ACCOUNT_ERASE_KEY"); key != "" {
+		es := &http.Server{Addr: nphttp.Env("ERASE_ADDR", ":9099"), Handler: svc.EraseHandler(key), ReadHeaderTimeout: 10 * time.Second}
+		go func() {
+			if err := es.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				slog.Error("erase listener stopped", "err", err)
+			}
+		}()
+		defer es.Close()
+	} else {
+		slog.Warn("ACCOUNT_ERASE_KEY unset: account erasure endpoint not served")
+	}
 	mux := http.NewServeMux()
 	svc.Register(mux)
 	nphttp.Health(mux)

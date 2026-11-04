@@ -134,6 +134,10 @@ type Consumer struct {
 	// Cut ends every open session of the account (the XMPP streams); nil
 	// when the community surface is off.
 	Cut func(account string) int
+	// Purge, when set, runs once for each account_deleted event so a service can drop the
+	// account's own rows. Errors are logged; the account was already erased through the
+	// erase endpoint before the core emits the event, so this is a safety net.
+	Purge func(ctx context.Context, account string) error
 	Log *slog.Logger
 }
 
@@ -146,7 +150,13 @@ func (c *Consumer) ProcessOnce(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	for _, e := range evs {
-		switch c.State.Apply(e) {
+		act := c.State.Apply(e)
+		if act == Purge && c.Purge != nil {
+			if err := c.Purge(ctx, e.AccountID); err != nil && c.Log != nil {
+				c.Log.Warn("np events: purge failed", "version", e.Version, "error", err)
+			}
+		}
+		switch act {
 		case Ban, Suspend, Purge:
 			if c.Cut != nil {
 				if n := c.Cut(e.AccountID); n > 0 && c.Log != nil {

@@ -13,10 +13,11 @@ import (
 // id, type, and its non-text children (np/rt/content attachments, message_kind, ...) as XML. It is
 // delivered again only to PS3 recipients; every other network sees the text.
 type Ext struct {
-	ChatID         int64
-	Subject, Body  string
-	StanzaID, Type string
-	XML            string // concatenated child elements other than subject, body and the stored marker
+	ChatID            int64
+	Sender, Recipient string // account ids; lets an erased account's rows be found
+	Subject, Body     string
+	StanzaID, Type    string
+	XML               string // concatenated child elements other than subject, body and the stored marker
 }
 
 // InboxStore is the PS3 side's own state about chat: the per-account delivery cursor, the event
@@ -106,6 +107,10 @@ func (s *PGInbox) Migrate(ctx context.Context) error {
 		type      text NOT NULL,
 		xml       text NOT NULL,
 		created   timestamptz NOT NULL DEFAULT now());
+	ALTER TABLE np_message_ext ADD COLUMN IF NOT EXISTS sender text NOT NULL DEFAULT '';
+	ALTER TABLE np_message_ext ADD COLUMN IF NOT EXISTS recipient text NOT NULL DEFAULT '';
+	CREATE INDEX IF NOT EXISTS np_message_ext_sender ON np_message_ext (sender) WHERE sender <> '';
+	CREATE INDEX IF NOT EXISTS np_message_ext_recipient ON np_message_ext (recipient) WHERE recipient <> '';
 	DELETE FROM np_message_ext WHERE created < now() - interval '35 days';
 	DROP TABLE IF EXISTS np_messages`)
 	return err
@@ -138,9 +143,9 @@ func (s *PGInbox) SetVersion(ctx context.Context, v uint64) error {
 	return err
 }
 func (s *PGInbox) PutExt(ctx context.Context, e Ext) error {
-	_, err := s.DB.Exec(ctx, `INSERT INTO np_message_ext (chat_id, subject, body, stanza_id, type, xml, created)
-		VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (chat_id) DO NOTHING`,
-		e.ChatID, e.Subject, e.Body, e.StanzaID, e.Type, e.XML, time.Now().UTC())
+	_, err := s.DB.Exec(ctx, `INSERT INTO np_message_ext (chat_id, subject, body, stanza_id, type, xml, created, sender, recipient)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (chat_id) DO NOTHING`,
+		e.ChatID, e.Subject, e.Body, e.StanzaID, e.Type, e.XML, time.Now().UTC(), e.Sender, e.Recipient)
 	return err
 }
 func (s *PGInbox) Ext(ctx context.Context, id int64) (Ext, bool, error) {
@@ -151,4 +156,42 @@ func (s *PGInbox) Ext(ctx context.Context, id int64) (Ext, bool, error) {
 		return Ext{}, false, nil
 	}
 	return e, err == nil, err
+}
+
+// Erase drops the account's cursor and the extensions it sent or received, in one transaction.
+func (s *PGInbox) Erase(ctx context.Context, a string) (int, error) {
+	tx, err := s.DB.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+	n := 0
+	for _, q := range []string{
+		`DELETE FROM np_chat_cursor WHERE account = $1`,
+		`DELETE FROM np_message_ext WHERE sender = $1 OR recipient = $1`,
+	} {
+		tag, err := tx.Exec(ctx, q, a)
+		if err != nil {
+			return 0, err
+		}
+		n += int(tag.RowsAffected())
+	}
+	return n, tx.Commit(ctx)
+}
+
+func (m *MemoryInbox) Erase(_ context.Context, a string) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	n := 0
+	if _, ok := m.cursors[a]; ok {
+		delete(m.cursors, a)
+		n++
+	}
+	for id, e := range m.ext {
+		if e.Sender == a || e.Recipient == a {
+			delete(m.ext, id)
+			n++
+		}
+	}
+	return n, nil
 }

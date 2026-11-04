@@ -40,3 +40,16 @@ Set `NP_CHAT_ADDR` (for example `openpak-chat:20131`, on the same container netw
 without them messages answer `service-unavailable`. `NP_DATABASE_URL` is required (the service refuses to start without it). Point it at a dedicated Postgres database (tables `np_chat_cursor`,
 `np_chat_follow` and `np_message_ext` are created at start; the retired `np_messages` is dropped).
 The container needs network access to Postgres and chat.
+
+## Account erasure
+
+`DELETE /internal/accounts/{account_id}/data` with `Authorization: Bearer <ACCOUNT_ERASE_KEY>` erases everything this service
+holds for a core account (UUID). It listens on `ERASE_ADDR` (default `:9099`, container network only, never published) and is
+only served when `ACCOUNT_ERASE_KEY` is set. The website finaliser calls `http://openpak-np-community:9099`; the reply is
+`{"service":"np-community","rows":N}`. The same erase also runs on the core's `account_deleted` event (np-common
+`events.Consumer.Purge`), as a safety net.
+
+Erased: `np_chat_cursor` (the account's delivery cursor), `np_message_settings` (its message settings), and the
+`np_message_ext` rows (PS3-only attachments and subject/body split) of messages the account sent or received.
+Kept: nothing per account. The message text itself lives in the chat service, which erases it through its own endpoint.
+`np_message_ext` rows written before 0.4.0 carry no owner and cannot be matched; they are purged by the existing 35-day expiry.
