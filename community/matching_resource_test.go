@@ -110,3 +110,20 @@ func TestMatchingKeyOwnSlot(t *testing.T) {
 		t.Fatal("matching key alone must be enough")
 	}
 }
+
+func TestMatchingAgentOnlyForListedTitles(t *testing.T) {
+	s := &Service{ResourceKey: bytes.Repeat([]byte{0x42}, 20), MatchingAgent: "h.example:3480", MatchingTitles: []string{"NPWR04270_00"}}
+	mux := http.NewServeMux()
+	s.Register(mux)
+	get := func(id string) string {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest("GET", "/np/resource/title/"+id+"/matching/"+id+"-matching.xml", nil))
+		return w.Body.String()
+	}
+	if !strings.Contains(get("NPWR04270_00"), `status="alive"`) {
+		t.Fatal("listed title must see the agent")
+	}
+	if !strings.Contains(get("NPWR01234_00"), `status="maintenance"`) {
+		t.Fatal("other titles stay in maintenance")
+	}
+}

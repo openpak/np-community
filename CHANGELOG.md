@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.7 - 2026-11-05
+
+- `NP_MATCHING_AGENT_TITLES` (comma-separated communication ids): the Matching2 discovery resource advertises the agent only for those titles, others stay in maintenance. Empty keeps the old behaviour (all titles, for the capture recorder).
+
 ## 0.4.6 - 2026-11-05
 
 - `matching2-recorder`: session key derived from the title passphrase instead of random, so a restart does not strand a connected console.

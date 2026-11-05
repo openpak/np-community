@@ -15,6 +15,7 @@ import (
 	"openpak/np-community/xmpp"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -86,6 +87,11 @@ func run() error {
 		slog.Warn("NP_CHAT_ADDR unset: friend messages answer service-unavailable")
 	}
 	svc.MatchingAgent = os.Getenv("NP_MATCHING_AGENT")
+	for _, t := range strings.Split(os.Getenv("NP_MATCHING_AGENT_TITLES"), ",") {
+		if t = strings.TrimSpace(t); t != "" {
+			svc.MatchingTitles = append(svc.MatchingTitles, t)
+		}
+	}
 	if path := os.Getenv("NP_TROPHY_RESOURCE_KEY"); path != "" {
 		svc.ResourceKey, err = os.ReadFile(path)
 		if err != nil {

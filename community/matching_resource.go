@@ -33,7 +33,7 @@ func (s *Service) matchingResource(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	xml := []byte(fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?><matching2 status="maintenance" titleid="%s"/>`, title))
-	if host, port, ok := parseMatchingAgent(s.MatchingAgent); ok {
+	if host, port, ok := parseMatchingAgent(s.MatchingAgent); ok && s.matchingTitle(title) {
 		xml = []byte(fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?><matching2 status="alive" titleid="%s"><agent-fqdn id="1" status="alive" port="%d">%s</agent-fqdn></matching2>`, title, port, host))
 	}
 	body := resource.Sign(xml, key)
@@ -55,4 +55,18 @@ func parseMatchingAgent(v string) (host string, port int, ok bool) {
 		return "", 0, false
 	}
 	return h, n, true
+}
+
+// matchingTitle reports whether the agent serves this title: NP_MATCHING_AGENT_TITLES is a comma-separated list of
+// communication ids; empty means every title (the capture recorder).
+func (s *Service) matchingTitle(title string) bool {
+	if len(s.MatchingTitles) == 0 {
+		return true
+	}
+	for _, t := range s.MatchingTitles {
+		if t == title {
+			return true
+		}
+	}
+	return false
 }

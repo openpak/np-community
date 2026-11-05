@@ -35,16 +35,17 @@ type Core interface {
 }
 
 type Service struct {
-	Core          Core
-	Tickets       *ticket.Signer
-	MatchingAgent string // NP_MATCHING_AGENT "host:port"; empty = Matching2 maintenance
-	ResourceKey   []byte // owner-local firmware resource compatibility key (trophy, vsh verify mode 5)
-	MatchingKey   []byte // the Matching2 discovery resource's own key (vsh verify mode 3, 0x684048 ^ 0x7f); falls back to ResourceKey
-	Client, OS    string
-	AvatarBaseURL string
-	Settings      SettingsStore // message settings; nil answers result ff
-	Chat          Chat          // core-neutral chat (NP_CHAT_ADDR); nil answers friend messages with service-unavailable
-	Inbox         InboxStore    // delivery cursors and PS3-only message extensions; needed with Chat
+	Core           Core
+	Tickets        *ticket.Signer
+	MatchingAgent  string   // NP_MATCHING_AGENT "host:port"; empty = Matching2 maintenance
+	ResourceKey    []byte   // owner-local firmware resource compatibility key (trophy, vsh verify mode 5)
+	MatchingTitles []string // NP_MATCHING_AGENT_TITLES: titles the agent serves; empty = all
+	MatchingKey    []byte   // the Matching2 discovery resource's own key (vsh verify mode 3, 0x684048 ^ 0x7f); falls back to ResourceKey
+	Client, OS     string
+	AvatarBaseURL  string
+	Settings       SettingsStore // message settings; nil answers result ff
+	Chat           Chat          // core-neutral chat (NP_CHAT_ADDR); nil answers friend messages with service-unavailable
+	Inbox          InboxStore    // delivery cursors and PS3-only message extensions; needed with Chat
 }
 
 func (s *Service) Verify(ctx context.Context, raw []byte) (ticket.Identity, error) {
