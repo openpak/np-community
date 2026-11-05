@@ -1,0 +1,16 @@
+name: dedup-lint
+
+# Fails when a table or column stores player identity as a first source (board card openpak/prds#131).
+# Allowlist: .dedup-allow. Checker and docs: openpak/.github scripts/README.md. Lint only, never builds or releases.
+on:
+  pull_request:
+  push:
+    branches: [main, master, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    uses: openpak/.github/.github/workflows/dedup-lint.yml@main
