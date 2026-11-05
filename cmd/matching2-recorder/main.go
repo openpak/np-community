@@ -28,6 +28,23 @@ type recorder struct {
 	// recorder verifies each request's MAC and answers the commands in replies (reply.go); without one it
 	// stays capture-only.
 	pass map[string][]byte
+	mu   sync.Mutex
+	keys map[string][]byte // latest session MAC key per communication id (login on TLS, the rest on the plain connection)
+}
+
+func (r *recorder) setKey(id string, k []byte) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.keys == nil {
+		r.keys = map[string][]byte{}
+	}
+	r.keys[id] = k
+}
+
+func (r *recorder) getKey(id string) []byte {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.keys[id]
 }
 
 func (r *recorder) handle(c net.Conn, kind string) {

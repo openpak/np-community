@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.4 - 2026-11-05
+
+- `matching2-recorder`: session key shared between the TLS login and the plain connection (per communication id); answers `0x1003`
+  (token renew) and `0x1008` (world list, one world) with session-key MACs.
+
 ## 0.4.3 - 2026-11-05
 
 - `matching2-recorder`: answers the `0x1002` login (session key `0x22`, tokens `0x23`/`0x5d`, `0x14`, `0x74`; values are ours, the

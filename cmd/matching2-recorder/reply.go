@@ -76,7 +76,10 @@ func elements(pkt []byte) map[uint16][]byte {
 }
 
 // connState is what one agent connection has negotiated: the session MAC key the 0x1002 reply handed out.
-type connState struct{ key []byte }
+type connState struct {
+	key    []byte
+	commID string
+}
 
 func macKey(key, pkt []byte) []byte {
 	z := append([]byte(nil), pkt...)
@@ -112,6 +115,11 @@ func (r *recorder) answer(chunk []byte, st *connState, note func(string, ...any)
 		cmd := binary.BigEndian.Uint16(pkt[4:6])
 		el := elements(pkt)
 		commID := string(el[0x10])
+		if commID == "" {
+			commID = st.commID // the requests after login carry no communication id: the connection learned it from 0x1001
+		} else {
+			st.commID = commID
+		}
 		pass, ok := r.pass[commID]
 		if !ok {
 			note("request 0x%04x: no passphrase for %q, not answering", cmd, commID)
@@ -127,6 +135,7 @@ func (r *recorder) answer(chunk []byte, st *connState, note func(string, ...any)
 			}
 			st.key = make([]byte, 20)
 			rand.Read(st.key)
+			r.setKey(commID, st.key)
 			tok := func() []byte { b := make([]byte, 16); rand.Read(b); return b }
 			note("request 0x1002: login accepted, session key issued")
 			out = append(out, reply(pass, cmd, 0, pkt[8:12],
@@ -134,12 +143,31 @@ func (r *recorder) answer(chunk []byte, st *connState, note func(string, ...any)
 			continue
 		}
 		if cmd != 0x1001 {
-			if st.key == nil {
+			key := st.key
+			if key == nil {
+				key = r.getKey(commID)
+			}
+			if key == nil {
 				note("request 0x%04x: no session yet", cmd)
-			} else if string(macKey(st.key, pkt)) == string(pkt[16:32]) {
-				note("request 0x%04x: session MAC ok", cmd)
-			} else {
+				continue
+			}
+			if string(macKey(key, pkt)) != string(pkt[16:32]) {
 				note("request 0x%04x: session MAC mismatch", cmd)
+				continue
+			}
+			note("request 0x%04x: session MAC ok", cmd)
+			switch cmd {
+			case 0x1003:
+				// renews the 0x5d token (reply schema: element 0x5d only)
+				out = append(out, replyKey(key, cmd, 0, pkt[8:12], tlv(0x5d, 2, randBytes(16))))
+			case 0x1008:
+				// world list: one world (SceNpMatching2World: id 1, no lobbies, no rooms), wire layout from the
+				// firmware's 0x2a parser: u16 id, u16 lobbies, u32 maxLobbyMembers, u32 curLobbyMembers, u16 rooms, u32 roomMembers
+				w := make([]byte, 18)
+				binary.BigEndian.PutUint16(w[0:], 1)
+				item := tlv(0x2a, 0, w)
+				list := append([]byte{0x00, 0x2a, 0, 1}, item...)
+				out = append(out, replyKey(key, cmd, 0, pkt[8:12], tlv(0x02, 0, list)))
 			}
 			continue
 		}
@@ -155,4 +183,21 @@ func (r *recorder) answer(chunk []byte, st *connState, note func(string, ...any)
 		}
 	}
 	return out
+}
+
+func randBytes(n int) []byte { b := make([]byte, n); rand.Read(b); return b }
+
+// replyKey is reply with a session key (any length) instead of the passphrase's first 16 bytes.
+func replyKey(key []byte, cmd uint16, result byte, reqID []byte, elems ...[]byte) []byte {
+	b := make([]byte, hdrLen)
+	b[0], b[1] = 0x11, 2
+	binary.BigEndian.PutUint16(b[4:], cmd)
+	b[6] = result
+	copy(b[8:12], reqID)
+	for _, e := range elems {
+		b = append(b, e...)
+	}
+	binary.BigEndian.PutUint16(b[2:], uint16(len(b)))
+	copy(b[16:32], macKey(key, b))
+	return b
 }
