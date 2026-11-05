@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.3 - 2026-11-05
+
+- `matching2-recorder`: answers the `0x1002` login (session key `0x22`, tokens `0x23`/`0x5d`, `0x14`, `0x74`; values are ours, the
+  shapes come from the firmware's reply parser) and MAC-checks later requests with that key; ticket, passphrase and session key
+  values are redacted from the capture files.
+
 ## 0.4.2 - 2026-11-05
 
 - `matching2-recorder` answers `0x1001` (context start) for titles listed in `M2_PASSPHRASES` (`COMMID=<256 hex>`), after

@@ -59,13 +59,14 @@ func (r *recorder) handle(c net.Conn, kind string) {
 		r.log.Info("handshake ok", "remote", remote, "suite", tls.CipherSuiteName(st.CipherSuite), "sni", st.ServerName)
 	}
 	buf := make([]byte, 0x6000)
+	st := &connState{}
 	for {
 		n, err := c.Read(buf)
 		if n > 0 {
 			mu.Lock()
 			io.WriteString(f, dumpChunk(time.Now().UTC().Format(time.RFC3339Nano), buf[:n]))
 			mu.Unlock()
-			for _, out := range r.answer(buf[:n], note) {
+			for _, out := range r.answer(buf[:n], st, note) {
 				if _, werr := c.Write(out); werr != nil {
 					note("write: %v", werr)
 					break

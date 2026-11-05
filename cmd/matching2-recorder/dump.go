@@ -48,6 +48,33 @@ func annotate(b []byte) []string {
 	return out
 }
 
+// redact returns a copy of the received bytes with the values of the secret elements overwritten: the NP ticket
+// (0x11) and the title passphrase (0x15) of a 0x1002 login, and a session key (0x22) in a reply.
+func redact(b []byte) []byte {
+	out := append([]byte(nil), b...)
+	for p := out; len(p) >= hdrLen && p[0] == 0x11; {
+		n := int(binary.BigEndian.Uint16(p[2:4]))
+		if n < hdrLen || n > len(p) {
+			break
+		}
+		for q := p[hdrLen:n]; len(q) >= 4; {
+			id := binary.BigEndian.Uint16(q) & 0xfff
+			l := int(binary.BigEndian.Uint16(q[2:]))
+			if 4+l > len(q) {
+				break
+			}
+			if id == 0x11 || id == 0x15 || id == 0x22 {
+				for i := 0; i < l; i++ {
+					q[4+i] = 0xAA
+				}
+			}
+			q = q[4+l:]
+		}
+		p = p[n:]
+	}
+	return out
+}
+
 // dumpChunk renders one received chunk as a timestamped hexdump plus frame notes.
 func dumpChunk(ts string, b []byte) string {
 	var s strings.Builder
@@ -55,7 +82,7 @@ func dumpChunk(ts string, b []byte) string {
 	for _, l := range annotate(b) {
 		fmt.Fprintf(&s, "  # %s\n", l)
 	}
-	s.WriteString(hex.Dump(b))
+	s.WriteString(hex.Dump(redact(b)))
 	return s.String()
 }
 
@@ -66,6 +93,6 @@ func dumpSent(ts string, b []byte) string {
 	for _, l := range annotate(b) {
 		fmt.Fprintf(&s, "  # %s\n", l)
 	}
-	s.WriteString(hex.Dump(b))
+	s.WriteString(hex.Dump(redact(b)))
 	return s.String()
 }

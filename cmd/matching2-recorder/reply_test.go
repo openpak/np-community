@@ -15,7 +15,7 @@ func TestRealRequest(t *testing.T) {
 		t.Fatal("MAC of the captured request does not verify")
 	}
 	r := &recorder{pass: map[string][]byte{"NPWR04270_00": pass}}
-	out := r.answer(pkt, func(string, ...any) {})
+	out := r.answer(pkt, &connState{}, func(string, ...any) {})
 	if len(out) != 1 || out[0][1] != 2 || out[0][4] != 0x10 || out[0][5] != 1 {
 		t.Fatalf("reply: %x", out)
 	}

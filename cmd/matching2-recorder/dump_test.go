@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"strings"
 	"testing"
 )
@@ -25,5 +27,17 @@ func TestDumpChunk(t *testing.T) {
 	d := dumpChunk("T", []byte{0x00, 'A'})
 	if !strings.Contains(d, "T recv 2 bytes") || !strings.Contains(d, "00000000  00 41") {
 		t.Fatal(d)
+	}
+}
+
+func TestRedactSecrets(t *testing.T) {
+	pkt := make([]byte, hdrLen)
+	pkt[0], pkt[1] = 0x11, 1
+	pkt = append(pkt, tlv(0x11, 2, []byte("ticket-secret"))...)
+	pkt = append(pkt, tlv(0x73, 4, []byte{0, 1})...)
+	binary.BigEndian.PutUint16(pkt[2:], uint16(len(pkt)))
+	out := redact(pkt)
+	if bytes.Contains(out, []byte("ticket-secret")) || !bytes.Contains(pkt, []byte("ticket-secret")) {
+		t.Fatal("redaction failed or mutated the input")
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/hex"
@@ -74,9 +75,22 @@ func elements(pkt []byte) map[uint16][]byte {
 	return out
 }
 
+// connState is what one agent connection has negotiated: the session MAC key the 0x1002 reply handed out.
+type connState struct{ key []byte }
+
+func macKey(key, pkt []byte) []byte {
+	z := append([]byte(nil), pkt...)
+	for i := 16; i < 32 && i < len(z); i++ {
+		z[i] = 0
+	}
+	h := hmac.New(sha1.New, key)
+	h.Write(z)
+	return h.Sum(nil)[:16]
+}
+
 // answer returns the reply frames for the requests in one received chunk. Commands it does not
 // implement are recorded by the caller and get no reply.
-func (r *recorder) answer(chunk []byte, note func(string, ...any)) [][]byte {
+func (r *recorder) answer(chunk []byte, st *connState, note func(string, ...any)) [][]byte {
 	if len(r.pass) == 0 {
 		return nil
 	}
@@ -101,6 +115,32 @@ func (r *recorder) answer(chunk []byte, note func(string, ...any)) [][]byte {
 		pass, ok := r.pass[commID]
 		if !ok {
 			note("request 0x%04x: no passphrase for %q, not answering", cmd, commID)
+			continue
+		}
+		if cmd == 0x1002 {
+			// Login: the first request on the TLS connection, never MAC'd by the client. It carries the
+			// whole title passphrase (element 0x15); the reply hands out the session MAC key (0x22), two
+			// opaque tokens (0x23, 0x5d) that later requests echo, a u32 (0x14) and a u16 (0x74).
+			if string(el[0x15]) != string(pass) {
+				note("request 0x1002: passphrase in the login does not match the configured one")
+				continue
+			}
+			st.key = make([]byte, 20)
+			rand.Read(st.key)
+			tok := func() []byte { b := make([]byte, 16); rand.Read(b); return b }
+			note("request 0x1002: login accepted, session key issued")
+			out = append(out, reply(pass, cmd, 0, pkt[8:12],
+				tlv(0x14, 5, []byte{0, 0, 0, 1}), tlv(0x22, 2, st.key), tlv(0x23, 2, tok()), tlv(0x5d, 2, tok()), tlv(0x74, 4, []byte{0, 1})))
+			continue
+		}
+		if cmd != 0x1001 {
+			if st.key == nil {
+				note("request 0x%04x: no session yet", cmd)
+			} else if string(macKey(st.key, pkt)) == string(pkt[16:32]) {
+				note("request 0x%04x: session MAC ok", cmd)
+			} else {
+				note("request 0x%04x: session MAC mismatch", cmd)
+			}
 			continue
 		}
 		if string(mac(pass, pkt)) != string(pkt[16:32]) {
