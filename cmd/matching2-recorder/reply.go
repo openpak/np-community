@@ -134,8 +134,7 @@ func (r *recorder) answer(chunk []byte, st *connState, note func(string, ...any)
 				note("request 0x1002: passphrase in the login does not match the configured one")
 				continue
 			}
-			st.key = make([]byte, 20)
-			rand.Read(st.key)
+			st.key = sessionKey(pass)
 			r.setKey(commID, st.key)
 			tok := func() []byte { b := make([]byte, 16); rand.Read(b); return b }
 			note("request 0x1002: login accepted, session key issued")
@@ -147,6 +146,9 @@ func (r *recorder) answer(chunk []byte, st *connState, note func(string, ...any)
 			key := st.key
 			if key == nil {
 				key = r.getKey(commID)
+			}
+			if key == nil {
+				key = sessionKey(pass) // the recorder restarted since the login: the key is derived, not stored
 			}
 			if key == nil {
 				note("request 0x%04x: no session yet", cmd)
@@ -201,4 +203,13 @@ func replyKey(key []byte, cmd uint16, result byte, reqID []byte, elems ...[]byte
 	binary.BigEndian.PutUint16(b[2:], uint16(len(b)))
 	copy(b[16:32], macKey(key, b))
 	return b
+}
+
+// sessionKey is the login's session MAC key. It is derived from the title passphrase so a restart of the
+// recorder does not strand a connected console (the firmware keeps the key from its login). One key per title:
+// fine for a recorder, the real agent derives it per login.
+func sessionKey(pass []byte) []byte {
+	h := hmac.New(sha1.New, pass)
+	h.Write([]byte("openpak matching2 session"))
+	return h.Sum(nil)
 }

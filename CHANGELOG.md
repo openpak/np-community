@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.6 - 2026-11-05
+
+- `matching2-recorder`: session key derived from the title passphrase instead of random, so a restart does not strand a connected console.
+
 ## 0.4.5 - 2026-11-05
 
 - `matching2-recorder`: login reply `0x74` = 600 (session lifetime in seconds; vsh renews the token at 80%, and 1 made it renew
