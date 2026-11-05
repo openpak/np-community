@@ -23,7 +23,12 @@ func (s *Service) matchingResource(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if len(s.ResourceKey) != 20 {
+	// vsh verifies this resource with its own key (receive mode 3), not the trophy key.
+	key := s.MatchingKey
+	if len(key) != 20 {
+		key = s.ResourceKey
+	}
+	if len(key) != 20 {
 		http.Error(w, "resource signing unavailable", http.StatusServiceUnavailable)
 		return
 	}
@@ -31,7 +36,7 @@ func (s *Service) matchingResource(w http.ResponseWriter, r *http.Request) {
 	if host, port, ok := parseMatchingAgent(s.MatchingAgent); ok {
 		xml = []byte(fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?><matching2 status="alive" titleid="%s"><agent-fqdn id="1" status="alive" port="%d">%s</agent-fqdn></matching2>`, title, port, host))
 	}
-	body := resource.Sign(xml, s.ResourceKey)
+	body := resource.Sign(xml, key)
 	w.Header().Set("Content-Type", "text/xml; charset=utf-8")
 	w.Header().Set("Content-Length", strconv.Itoa(len(body)))
 	w.Header().Set("Cache-Control", "no-store")

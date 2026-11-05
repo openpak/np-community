@@ -38,7 +38,8 @@ type Service struct {
 	Core          Core
 	Tickets       *ticket.Signer
 	MatchingAgent string // NP_MATCHING_AGENT "host:port"; empty = Matching2 maintenance
-	ResourceKey   []byte // owner-local firmware resource compatibility key
+	ResourceKey   []byte // owner-local firmware resource compatibility key (trophy, vsh verify mode 5)
+	MatchingKey   []byte // the Matching2 discovery resource's own key (vsh verify mode 3, 0x684048 ^ 0x7f); falls back to ResourceKey
 	Client, OS    string
 	AvatarBaseURL string
 	Settings      SettingsStore // message settings; nil answers result ff

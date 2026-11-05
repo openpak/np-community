@@ -11,7 +11,7 @@ No native login or trophy routes are registered here.
 Default: `<matching2 status="maintenance" titleid="..."/>`. With `NP_MATCHING_AGENT=host:port` it is
 `<matching2 status="alive" titleid="..."><agent-fqdn id="1" status="alive" port="PORT">host</agent-fqdn></matching2>`;
 the console then opens plain TCP to `host:PORT` and TLS to `host:443`. No agent implementation
-exists; point it only at `matching2-recorder`.
+exists; point it only at `matching2-recorder`. Signed with `NP_MATCHING_RESOURCE_KEY` (vsh mode 3), not the trophy key.
 
 ## NSX feeds
 

@@ -90,3 +90,23 @@ func TestMatchingAgentAdvertised(t *testing.T) {
 		}
 	}
 }
+
+func TestMatchingKeyOwnSlot(t *testing.T) {
+	tr, mk := bytes.Repeat([]byte{0x42}, 20), bytes.Repeat([]byte{0x17}, 20)
+	get := func(s *Service) string {
+		mux := http.NewServeMux()
+		s.Register(mux)
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest("GET", "/np/resource/title/NPWR04270_00/matching/NPWR04270_00-matching.xml", nil))
+		return w.Body.String()
+	}
+	a := get(&Service{ResourceKey: tr, MatchingKey: mk})
+	b := get(&Service{ResourceKey: tr})
+	c := get(&Service{MatchingKey: mk})
+	if a == b {
+		t.Fatal("matching resource ignored its own key")
+	}
+	if a != c {
+		t.Fatal("matching key alone must be enough")
+	}
+}

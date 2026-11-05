@@ -95,6 +95,15 @@ func run() error {
 			return fmt.Errorf("NP_TROPHY_RESOURCE_KEY must contain 20 bytes")
 		}
 	}
+	if path := os.Getenv("NP_MATCHING_RESOURCE_KEY"); path != "" {
+		svc.MatchingKey, err = os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if len(svc.MatchingKey) != 20 {
+			return fmt.Errorf("NP_MATCHING_RESOURCE_KEY must contain 20 bytes")
+		}
+	}
 	front, err := nphttp.Front()
 	if err != nil {
 		return err

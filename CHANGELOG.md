@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 - 2026-11-05
+
+- Matching2 discovery resource is signed with its own firmware key (`NP_MATCHING_RESOURCE_KEY`, 20 bytes, vsh verify mode 3 =
+  `0x684048 ^ 0x7f`); before, the trophy key signed it and vsh would reject it as a bad signature. Falls back to `NP_TROPHY_RESOURCE_KEY`.
+
 ## 0.4.0 - 2026-11-04
 
 - Account erasure (card #120): `DELETE /internal/accounts/{account_id}/data` (bearer `ACCOUNT_ERASE_KEY`, listener `ERASE_ADDR`,
