@@ -58,3 +58,14 @@ func dumpChunk(ts string, b []byte) string {
 	s.WriteString(hex.Dump(b))
 	return s.String()
 }
+
+// dumpSent renders one chunk the recorder sent.
+func dumpSent(ts string, b []byte) string {
+	var s strings.Builder
+	fmt.Fprintf(&s, "%s sent %d bytes\n", ts, len(b))
+	for _, l := range annotate(b) {
+		fmt.Fprintf(&s, "  # %s\n", l)
+	}
+	s.WriteString(hex.Dump(b))
+	return s.String()
+}

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.2 - 2026-11-05
+
+- `matching2-recorder` answers `0x1001` (context start) for titles listed in `M2_PASSPHRASES` (`COMMID=<256 hex>`), after
+  verifying the request MAC (HMAC-SHA1 keyed by the first 16 bytes of the title passphrase, checked against a real Terraria
+  request captured in Pier 2026-11-05). Without an entry it stays capture-only. Reply content of `0x1d` is a guess; see
+  research/ps3/matching2-protocol.md.
+
 ## 0.4.1 - 2026-11-05
 
 - Matching2 discovery resource is signed with its own firmware key (`NP_MATCHING_RESOURCE_KEY`, 20 bytes, vsh verify mode 3 =

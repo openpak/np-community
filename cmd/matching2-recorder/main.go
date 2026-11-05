@@ -1,6 +1,6 @@
 // matching2-recorder accepts the PS3 Matching2 agent connections (plain TCP
-// and RSA-kex TLS) and records every byte the console sends. It never writes
-// to a client. Run it only while capturing (research/ps3/matching2-protocol.md).
+// and RSA-kex TLS) and records every byte the console sends. It writes to a client only for commands
+// reply.go implements, and only for titles listed in M2_PASSPHRASES. Run it only while capturing (research/ps3/matching2-protocol.md).
 package main
 
 import (
@@ -24,6 +24,10 @@ var seq atomic.Int64
 type recorder struct {
 	dir string
 	log *slog.Logger
+	// pass maps a communication id to its 128-byte title passphrase (M2_PASSPHRASES). With an entry, the
+	// recorder verifies each request's MAC and answers the commands in replies (reply.go); without one it
+	// stays capture-only.
+	pass map[string][]byte
 }
 
 func (r *recorder) handle(c net.Conn, kind string) {
@@ -61,6 +65,15 @@ func (r *recorder) handle(c net.Conn, kind string) {
 			mu.Lock()
 			io.WriteString(f, dumpChunk(time.Now().UTC().Format(time.RFC3339Nano), buf[:n]))
 			mu.Unlock()
+			for _, out := range r.answer(buf[:n], note) {
+				if _, werr := c.Write(out); werr != nil {
+					note("write: %v", werr)
+					break
+				}
+				mu.Lock()
+				io.WriteString(f, dumpSent(time.Now().UTC().Format(time.RFC3339Nano), out))
+				mu.Unlock()
+			}
 		}
 		if err != nil {
 			note("close: %v", err)
@@ -105,7 +118,12 @@ func main() {
 		log.Error("log dir", "err", err)
 		os.Exit(1)
 	}
-	r := &recorder{dir: dir, log: log}
+	pass, err := parsePassphrases(os.Getenv("M2_PASSPHRASES"))
+	if err != nil {
+		log.Error("M2_PASSPHRASES", "err", err)
+		os.Exit(1)
+	}
+	r := &recorder{dir: dir, log: log, pass: pass}
 	plain, err := net.Listen("tcp", env("M2_PLAIN_ADDR", ":3480"))
 	if err != nil {
 		log.Error("listen plain", "err", err)
