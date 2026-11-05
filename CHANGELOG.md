@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.5 - 2026-11-05
+
+- `matching2-recorder`: login reply `0x74` = 600 (session lifetime in seconds; vsh renews the token at 80%, and 1 made it renew
+  continuously), `0x14` = 12345.
+
 ## 0.4.4 - 2026-11-05
 
 - `matching2-recorder`: session key shared between the TLS login and the plain connection (per communication id); answers `0x1003`

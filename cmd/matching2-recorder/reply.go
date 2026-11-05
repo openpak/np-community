@@ -128,7 +128,8 @@ func (r *recorder) answer(chunk []byte, st *connState, note func(string, ...any)
 		if cmd == 0x1002 {
 			// Login: the first request on the TLS connection, never MAC'd by the client. It carries the
 			// whole title passphrase (element 0x15); the reply hands out the session MAC key (0x22), two
-			// opaque tokens (0x23, 0x5d) that later requests echo, a u32 (0x14) and a u16 (0x74).
+			// opaque tokens (0x23, 0x5d) that later requests echo, a u32 (0x14, passed back in later requests) and a u16 (0x74: the
+			// session lifetime in seconds; vsh renews the 0x5d token with 0x1003 at 80% of it, so 1 made it renew without pause).
 			if string(el[0x15]) != string(pass) {
 				note("request 0x1002: passphrase in the login does not match the configured one")
 				continue
@@ -139,7 +140,7 @@ func (r *recorder) answer(chunk []byte, st *connState, note func(string, ...any)
 			tok := func() []byte { b := make([]byte, 16); rand.Read(b); return b }
 			note("request 0x1002: login accepted, session key issued")
 			out = append(out, reply(pass, cmd, 0, pkt[8:12],
-				tlv(0x14, 5, []byte{0, 0, 0, 1}), tlv(0x22, 2, st.key), tlv(0x23, 2, tok()), tlv(0x5d, 2, tok()), tlv(0x74, 4, []byte{0, 1})))
+				tlv(0x14, 5, []byte{0, 0, 0x30, 0x39}), tlv(0x22, 2, st.key), tlv(0x23, 2, tok()), tlv(0x5d, 2, tok()), tlv(0x74, 4, []byte{0x02, 0x58})))
 			continue
 		}
 		if cmd != 0x1001 {
