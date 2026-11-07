@@ -215,6 +215,53 @@ func (r *idleReader) Read(p []byte) (int, error) {
 	return r.Conn.Read(p)
 }
 func (c *client) authFailure() { c.send(`<failure xmlns="` + saslNS + `"><not-authorized/></failure>`) }
+
+// forwardSignaling routes an NP signaling stanza (netinfo/udpp2p, any iq type including result/error)
+// to the connected client it is addressed to, as the RT service does between consoles. It reports
+// whether the stanza was handled: an unaddressed or server-local stanza falls through to the handlers.
+func (c *client) forwardSignaling(n node) bool {
+	to := n.attr("to")
+	if to == "" || (n.child(netinfoNS, "query") == nil && n.child(udpp2pNS, "query") == nil) {
+		return false
+	}
+	c.s.mu.Lock()
+	var peer *client
+	for o := range c.s.clients {
+		if o == c {
+			continue
+		}
+		o.stateMu.Lock()
+		jid, online := o.jid, o.id.OnlineID
+		o.stateMu.Unlock()
+		bare := strings.SplitN(jid, "/", 2)[0]
+		if to == jid || to == bare || to == online || strings.HasPrefix(to, online+"@") {
+			peer = o
+			break
+		}
+	}
+	c.s.mu.Unlock()
+	if peer == nil {
+		return false
+	}
+	out := n
+	out.Attrs = append([]xml.Attr(nil), n.Attrs...)
+	found := false
+	for i, a := range out.Attrs {
+		if a.Name.Local == "from" {
+			out.Attrs[i].Value, found = c.jid, true
+		}
+	}
+	if !found {
+		out.Attrs = append(out.Attrs, xml.Attr{Name: xml.Name{Local: "from"}, Value: c.jid})
+	}
+	if err := peer.send(encoded(out)); err != nil {
+		c.s.Log.Info("NP signaling forward failed", "from", c.id.OnlineID, "to", to, "error", err)
+		return true
+	}
+	c.s.Log.Info("NP signaling forwarded", "from", c.id.OnlineID, "to", to, "type", n.attr("type"))
+	return true
+}
+
 func (c *client) iq(n node, body string) error {
 	return c.send(`<iq type="result" id=` + attr(n.attr("id")) + `>` + body + `</iq>`)
 }
@@ -228,6 +275,9 @@ func (c *client) handle(ctx context.Context, n node) error {
 	switch n.Name.Local {
 	case "iq":
 		kind := n.attr("type")
+		if c.bound && c.forwardSignaling(n) {
+			return nil
+		}
 		if kind == "result" || kind == "error" {
 			return nil
 		}

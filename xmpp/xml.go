@@ -15,6 +15,8 @@ const sessionNS = "urn:ietf:params:xml:ns:xmpp-session"
 const rosterNS = "jabber:iq:roster"
 const stanzaNS = "urn:ietf:params:xml:ns:xmpp-stanzas"
 const clientNS = "jabber:client"
+const netinfoNS = "http://playstation.net/np/rt/netinfo" // NP signaling: peer net-info exchange (vsh SceNpSignaling)
+const udpp2pNS = "http://playstation.net/np/rt/udpp2p"   // NP signaling: peer activation (offer/accept/activated)
 
 type node struct {
 	Name     xml.Name

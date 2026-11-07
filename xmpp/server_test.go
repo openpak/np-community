@@ -304,6 +304,117 @@ func TestPresenceStatusDropsRawTitleID(t *testing.T) {
 	}
 }
 
+// Two authenticated streams: an NP signaling iq (udpp2p) addressed to the other console is forwarded
+// with the sender's JID in from=, and its result comes back the other way. Before this, peer signaling
+// got service-unavailable and activation between consoles could never start.
+func TestSignalingForwardedBetweenClients(t *testing.T) {
+	const key = "core-key-core-key-core-key-core-key"
+	f := fakecore.New(key)
+	f.AddAccount(fakecore.Account{ID: "a", Email: "a@example.org", Password: "pw", DisplayName: "Alice", Country: "US"})
+	f.AddAccount(fakecore.Account{ID: "b", DisplayName: "Bob", Country: "GB"})
+	core, e := coreclient.Dial("passthrough:///core", key, f.Serve(t)...)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer core.Close()
+	_, priv, _ := ed25519.GenerateKey(rand.Reader)
+	signer, _ := ticket.New(priv, nil)
+	svc := &community.Service{Core: core, Tickets: signer, Client: "pier", OS: "linux"}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ln, e := net.Listen("tcp", "127.0.0.1:0")
+	if e != nil {
+		t.Fatal(e)
+	}
+	go (&Server{Service: svc, PollInterval: 25 * time.Millisecond}).Serve(ctx, ln)
+	dial := func(acctID string) (net.Conn, *xml.Decoder, string) {
+		acct, e := core.GetAccount(ctx, acctID)
+		if e != nil {
+			t.Fatal(e)
+		}
+		id, err := identity.EnsureNPLink(ctx, core, acct)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, e := signer.Issue(ticket.Identity{AccountID: id.AccountID, LinkID: id.LinkID, OnlineID: id.OnlineID, Country: "us", Service: "IV0001-NPXS01001_00"}, time.Hour)
+		if e != nil {
+			t.Fatal(e)
+		}
+		conn, e := net.Dial("tcp", ln.Addr().String())
+		if e != nil {
+			t.Fatal(e)
+		}
+		reader := bufio.NewReader(conn)
+		d := xml.NewDecoder(reader)
+		send := func(s string) {
+			conn.SetWriteDeadline(time.Now().Add(3 * time.Second))
+			if _, e := conn.Write([]byte(s)); e != nil {
+				t.Fatal(e)
+			}
+		}
+		open := `<stream:stream xmlns="jabber:client" xmlns:stream="http://etherx.jabber.org/streams" to="us.us.np.playstation.net" version="1.0">`
+		send(open)
+		if _, e = streamStart(d); e != nil {
+			t.Fatal(e)
+		}
+		if _, e = nextNode(d); e != nil { // features
+			t.Fatal(e)
+		}
+		send(`<auth xmlns="` + saslNS + `" mechanism="I5R-TICKET-AUTH">` + base64.StdEncoding.EncodeToString(raw) + `</auth>`)
+		if _, e = nextNode(d); e != nil { // success
+			t.Fatal(e)
+		}
+		d = xml.NewDecoder(reader)
+		send(open)
+		if _, e = streamStart(d); e != nil {
+			t.Fatal(e)
+		}
+		if _, e = nextNode(d); e != nil { // features
+			t.Fatal(e)
+		}
+		send(`<iq type="set" id="bind"><bind xmlns="` + bindNS + `"><resource>ps3</resource></bind></iq>`)
+		return conn, d, id.OnlineID
+	}
+	waitIQ := func(d *xml.Decoder, id string) node {
+		t.Helper()
+		for i := 0; i < 100; i++ {
+			n, e := nextNode(d)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if n.Name.Local == "iq" && n.attr("id") == id {
+				return n
+			}
+		}
+		t.Fatalf("no iq %s", id)
+		return node{}
+	}
+	aliceConn, aliceDec, aliceID := dial("a")
+	defer aliceConn.Close()
+	bobConn, bobDec, bobID := dial("b")
+	defer bobConn.Close()
+	waitIQ(aliceDec, "bind")
+	waitIQ(bobDec, "bind")
+	sendBob := `<iq type="set" id="sig1" to="` + aliceID + `@us.us.np.playstation.net/ps3"><query xmlns="` + udpp2pNS + `" action="offer" sid="3" psid="0" skey="000102030405060708090a0b0c0d0e0f" nattype="2"><candidate type="stun" address="203.0.113.5" port="3658"/></query></iq>`
+	bobConn.SetWriteDeadline(time.Now().Add(3 * time.Second))
+	if _, e := bobConn.Write([]byte(sendBob)); e != nil {
+		t.Fatal(e)
+	}
+	got := waitIQ(aliceDec, "sig1")
+	if !strings.HasPrefix(got.attr("from"), bobID+"@") || got.child(udpp2pNS, "query") == nil {
+		t.Fatalf("forwarded stanza: %+v", got)
+	}
+	sendAlice := `<iq type="result" id="sig1" to="` + bobID + `@us.us.np.playstation.net/ps3"><query xmlns="` + udpp2pNS + `"/></iq>`
+	aliceConn.SetWriteDeadline(time.Now().Add(3 * time.Second))
+	if _, e := aliceConn.Write([]byte(sendAlice)); e != nil {
+		t.Fatal(e)
+	}
+	back := waitIQ(bobDec, "sig1")
+	if back.attr("type") != "result" || !strings.HasPrefix(back.attr("from"), aliceID+"@") {
+		t.Fatalf("result stanza: %+v", back)
+	}
+}
+
 func TestDisconnectClosesOnlyThatAccountsStreams(t *testing.T) {
 	s := &Server{clients: map[*client]struct{}{}}
 	mk := func(acct string) net.Conn {

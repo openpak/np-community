@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.8 - 2026-11-07
+
+- RT stream: NP signaling stanzas (`http://playstation.net/np/rt/netinfo`, `http://playstation.net/np/rt/udpp2p`, any iq type including result/error) addressed to another connected console are forwarded to it with the sender's JID in `from=`. Before, peer signaling got `service-unavailable`, so `sceNpSignaling` activation between consoles could never start (Terraria cross-play relay, prds#145).
+
 ## 0.4.7 - 2026-11-05
 
 - `NP_MATCHING_AGENT_TITLES` (comma-separated communication ids): the Matching2 discovery resource advertises the agent only for those titles, others stay in maintenance. Empty keeps the old behaviour (all titles, for the capture recorder).
