@@ -127,3 +127,15 @@ func TestMatchingAgentOnlyForListedTitles(t *testing.T) {
 		t.Fatal("other titles stay in maintenance")
 	}
 }
+
+// Minecraft: PlayStation 3 Edition (NP communication id NPWR05636_00) is answered next to Terraria once it is listed in NP_MATCHING_AGENT_TITLES.
+func TestMatchingAgentForMinecraftPS3(t *testing.T) {
+	s := &Service{ResourceKey: bytes.Repeat([]byte{0x42}, 20), MatchingAgent: "h.example:3480", MatchingTitles: []string{"NPWR04270_00", "NPWR05636_00"}}
+	mux := http.NewServeMux()
+	s.Register(mux)
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, httptest.NewRequest("GET", "/np/resource/title/NPWR05636_00/matching/NPWR05636_00-matching.xml", nil))
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `<matching2 status="alive" titleid="NPWR05636_00"><agent-fqdn id="1" status="alive" port="3480">h.example</agent-fqdn></matching2>`) {
+		t.Fatalf("%d %q", w.Code, w.Body.String())
+	}
+}

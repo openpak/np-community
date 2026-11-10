@@ -360,6 +360,9 @@ func (c *client) expire() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		c.s.Service.Core.ExpirePresence(ctx, id)
+		if c.s.Service.Inbox != nil {
+			c.s.Service.Inbox.PutPresence(ctx, c.id.AccountID, "")
+		}
 	}
 }
 func (c *client) maintain(ctx context.Context) {
@@ -466,7 +469,16 @@ func (c *client) onPresence(ctx context.Context, n node) error {
 	c.available = true
 	c.presence = n.Children
 	c.stateMu.Unlock()
-	c.s.Log.Info("NP presence set", "account", c.id.AccountID, "online_id", c.id.OnlineID)
+	data := presenceData(n.Children)
+	if svc := c.s.Service; svc.Inbox != nil {
+		// The game's presence data (Minecraft hosting: the room id and session blob) rides in the console's presence children. The core's
+		// presence has no field for it, so the PS3 side keeps it (like message attachments) and shows it again to the friends who see this
+		// account online. Without a stored copy the friend would see the status line only and could not join the world.
+		if e := svc.Inbox.PutPresence(ctx, c.id.AccountID, data); e != nil {
+			c.s.Log.Warn("NP presence data not stored", "account", c.id.AccountID, "error", e)
+		}
+	}
+	c.s.Log.Info("NP presence set", "account", c.id.AccountID, "online_id", c.id.OnlineID, "children", presenceNames(n.Children), "data_bytes", len(data))
 	return c.refresh(ctx)
 }
 func (c *client) rosterReply(ctx context.Context, n node) error {
@@ -526,8 +538,16 @@ func (c *client) refresh(ctx context.Context) error {
 		return e
 	}
 	byID := map[string]string{}
+	var onlineIDs []string
 	for _, p := range presence {
 		byID[p.AccountId] = presenceStatus(p.Namespace, p.Client, p.TitleId)
+		onlineIDs = append(onlineIDs, p.AccountId)
+	}
+	var data map[string]string
+	if c.s.Service.Inbox != nil && len(onlineIDs) > 0 {
+		if data, e = c.s.Service.Inbox.Presences(ctx, onlineIDs); e != nil {
+			return e
+		}
 	}
 	next := map[string]community.Friend{}
 	for _, f := range friends {
@@ -546,7 +566,7 @@ func (c *client) refresh(ctx context.Context) error {
 		if online {
 			lastSeen = 0
 		}
-		snapshot, _ := json.Marshal([]any{online, status, f.JID(), lastSeen})
+		snapshot, _ := json.Marshal([]any{online, status, f.JID(), lastSeen, data[f.AccountID]})
 		value := string(snapshot)
 		if c.snapshot[f.AccountID] != value {
 			kind := ""
@@ -555,7 +575,7 @@ func (c *client) refresh(ctx context.Context) error {
 				kind = ` type="unavailable"`
 				body += offlineActivity(f.LastSeenUnix)
 			} else {
-				body += `<status>` + escaped(status) + `</status>`
+				body += `<status>` + escaped(status) + `</status>` + data[f.AccountID]
 			}
 			if e = c.send(`<presence from=` + attr(f.JID()+"/ps3") + ` to=` + attr(c.jid) + kind + `>` + body + `</presence>`); e != nil {
 				return e
@@ -624,4 +644,35 @@ func presenceStatus(namespace, client, title string) string {
 		}
 	}
 	return status
+}
+
+// presenceData is the XML of the presence children a friend should see again: everything the console sent except its own profile (the
+// relay writes the profile itself, from the account) and its status (the relay writes one from the core's presence). Capped so a console cannot
+// park an arbitrary document in the store.
+func presenceData(children []node) string {
+	var b strings.Builder
+	for _, ch := range children {
+		if ch.Name.Space == profileNS || (ch.Name.Local == "status" && (ch.Name.Space == "" || ch.Name.Space == clientNS)) {
+			continue
+		}
+		b.WriteString(encoded(ch))
+	}
+	if b.Len() > maxPresenceData {
+		return ""
+	}
+	return b.String()
+}
+
+const (
+	profileNS       = "http://playstation.net/np/rt/profile"
+	maxPresenceData = 4096
+)
+
+// presenceNames lists the child element names of a presence, for the log (never their content).
+func presenceNames(children []node) []string {
+	var out []string
+	for _, ch := range children {
+		out = append(out, ch.Name.Space+" "+ch.Name.Local)
+	}
+	return out
 }

@@ -45,7 +45,8 @@ func TestCoreFriendsPresenceAndDisconnect(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	svc := &community.Service{Core: core, Tickets: signer, Client: "pier", OS: "linux"}
+	inbox := &community.MemoryInbox{}
+	svc := &community.Service{Core: core, Tickets: signer, Client: "pier", OS: "linux", Inbox: inbox}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ln, e := net.Listen("tcp", "127.0.0.1:0")
@@ -115,7 +116,11 @@ func TestCoreFriendsPresenceAndDisconnect(t *testing.T) {
 	if _, e = core.GetLinkByAccount(ctx, "b"); e != nil {
 		t.Fatal("friend without PS3 login was not migrated", e)
 	}
-	send(`<presence><status>On XMB</status></presence>`)
+	// The console's presence carries the game's presence data (Minecraft PS3 01.84: a 56-byte room blob, base64 here); the stanza layout
+	// of a real console is not captured yet, so the relay keeps every child except the console's own profile and status, verbatim.
+	blob := base64.StdEncoding.EncodeToString([]byte("0123456789012345678901234567890123456789012345678901234\x01"))
+	send(`<presence><status>On XMB</status><x xmlns="http://playstation.net/np/rt/profile"><name>ignored</name></x>` +
+		`<x xmlns="http://playstation.net/np/rt/presence" mode="gameSpecified"><data size="56">` + blob + `</data></x></presence>`)
 	deadline := time.Now().Add(3 * time.Second)
 	for f.Called("Sessions.RegisterSession") == 0 && time.Now().Before(deadline) {
 		time.Sleep(10 * time.Millisecond)
@@ -124,6 +129,14 @@ func TestCoreFriendsPresenceAndDisconnect(t *testing.T) {
 	if e != nil || len(online) != 1 || online[0].Client != "pier" {
 		t.Fatal("core presence not registered", online, e)
 	}
+	// the console's own presence data is stored for its friends, without the profile and status the relay writes itself
+	stored, _ := inbox.Presences(ctx, []string{"a"})
+	if x := stored["a"]; !strings.Contains(x, blob) || strings.Contains(x, "ignored") || strings.Contains(x, "On XMB") {
+		t.Fatalf("stored presence data %q", x)
+	}
+	// Bob's console sets presence data too: Alice sees it under his presence, next to the name and the status line
+	const bobData = `<x xmlns="http://playstation.net/np/rt/presence" mode="gameSpecified"><data size="56">BOBBLOB=</data></x>`
+	inbox.PutPresence(ctx, "b", bobData)
 	friendSession, _, e := core.RegisterPresence(ctx, "b", "switch-game", "other-adapter", "harbor", "linux")
 	if e != nil {
 		t.Fatal(e)
@@ -134,6 +147,13 @@ func TestCoreFriendsPresenceAndDisconnect(t *testing.T) {
 		if strings.HasPrefix(n.attr("from"), "Bob@") && n.attr("type") == "" {
 			if n.child(clientNS, "status") == nil {
 				t.Fatal("missing status")
+			}
+			px := n.child("http://playstation.net/np/rt/presence", "x")
+			if px == nil || px.attr("mode") != "gameSpecified" || len(px.Children) != 1 || px.Children[0].Text != "BOBBLOB=" || px.Children[0].attr("size") != "56" {
+				t.Fatalf("friend presence lacks the game's presence data: %+v", n)
+			}
+			if n.child("http://playstation.net/np/rt/profile", "x") == nil {
+				t.Fatal("friend presence lacks the profile")
 			}
 			break
 		}
@@ -167,6 +187,9 @@ func TestCoreFriendsPresenceAndDisconnect(t *testing.T) {
 	online, e = core.Presence(ctx, []string{"a"})
 	if e != nil || len(online) != 0 {
 		t.Fatal("disconnect did not expire core presence", online, e)
+	}
+	if gone, _ := inbox.Presences(ctx, []string{"a"}); len(gone) != 0 {
+		t.Fatal("disconnect left the presence data behind", gone)
 	}
 	cancel()
 	select {

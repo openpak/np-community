@@ -32,6 +32,11 @@ type InboxStore interface {
 	SetVersion(ctx context.Context, v uint64) error
 	PutExt(ctx context.Context, e Ext) error
 	Ext(ctx context.Context, chatID int64) (Ext, bool, error)
+	// PutPresence keeps the child elements of a PS3's available presence (the game's presence data: Minecraft's 56-byte room blob) as XML,
+	// to be shown again to the PS3 friends who see it online; "" removes it. Presences returns the stored XML of the given accounts
+	// (accounts without any are absent from the map).
+	PutPresence(ctx context.Context, account, xml string) error
+	Presences(ctx context.Context, accounts []string) (map[string]string, error)
 }
 
 // MemoryInbox is the non-durable InboxStore for tests and for running without a database.
@@ -41,6 +46,7 @@ type MemoryInbox struct {
 	version uint64
 	hasVer  bool
 	ext     map[int64]Ext
+	present map[string]string
 }
 
 func (m *MemoryInbox) Cursor(_ context.Context, a string) (int64, bool, error) {
@@ -87,6 +93,31 @@ func (m *MemoryInbox) Ext(_ context.Context, id int64) (Ext, bool, error) {
 	return e, ok, nil
 }
 
+func (m *MemoryInbox) PutPresence(_ context.Context, a, xml string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if xml == "" {
+		delete(m.present, a)
+		return nil
+	}
+	if m.present == nil {
+		m.present = map[string]string{}
+	}
+	m.present[a] = xml
+	return nil
+}
+func (m *MemoryInbox) Presences(_ context.Context, accounts []string) (map[string]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := map[string]string{}
+	for _, a := range accounts {
+		if x, ok := m.present[a]; ok {
+			out[a] = x
+		}
+	}
+	return out, nil
+}
+
 // PGInbox is the Postgres InboxStore.
 type PGInbox struct{ DB *pgxpool.Pool }
 
@@ -111,6 +142,11 @@ func (s *PGInbox) Migrate(ctx context.Context) error {
 	ALTER TABLE np_message_ext ADD COLUMN IF NOT EXISTS recipient text NOT NULL DEFAULT '';
 	CREATE INDEX IF NOT EXISTS np_message_ext_sender ON np_message_ext (sender) WHERE sender <> '';
 	CREATE INDEX IF NOT EXISTS np_message_ext_recipient ON np_message_ext (recipient) WHERE recipient <> '';
+	CREATE TABLE IF NOT EXISTS np_presence_data (
+		account text PRIMARY KEY,
+		xml     text NOT NULL,
+		updated timestamptz NOT NULL DEFAULT now());
+	DELETE FROM np_presence_data WHERE updated < now() - interval '2 days';
 	DELETE FROM np_message_ext WHERE created < now() - interval '35 days';
 	DROP TABLE IF EXISTS np_messages`)
 	return err
@@ -158,6 +194,35 @@ func (s *PGInbox) Ext(ctx context.Context, id int64) (Ext, bool, error) {
 	return e, err == nil, err
 }
 
+func (s *PGInbox) PutPresence(ctx context.Context, a, xml string) error {
+	if xml == "" {
+		_, err := s.DB.Exec(ctx, `DELETE FROM np_presence_data WHERE account = $1`, a)
+		return err
+	}
+	_, err := s.DB.Exec(ctx, `INSERT INTO np_presence_data (account, xml, updated) VALUES ($1,$2,now())
+		ON CONFLICT (account) DO UPDATE SET xml = EXCLUDED.xml, updated = EXCLUDED.updated`, a, xml)
+	return err
+}
+func (s *PGInbox) Presences(ctx context.Context, accounts []string) (map[string]string, error) {
+	out := map[string]string{}
+	if len(accounts) == 0 {
+		return out, nil
+	}
+	rows, err := s.DB.Query(ctx, `SELECT account, xml FROM np_presence_data WHERE account = ANY($1)`, accounts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var a, x string
+		if err := rows.Scan(&a, &x); err != nil {
+			return nil, err
+		}
+		out[a] = x
+	}
+	return out, rows.Err()
+}
+
 // Erase drops the account's cursor and the extensions it sent or received, in one transaction.
 func (s *PGInbox) Erase(ctx context.Context, a string) (int, error) {
 	tx, err := s.DB.Begin(ctx)
@@ -169,6 +234,7 @@ func (s *PGInbox) Erase(ctx context.Context, a string) (int, error) {
 	for _, q := range []string{
 		`DELETE FROM np_chat_cursor WHERE account = $1`,
 		`DELETE FROM np_message_ext WHERE sender = $1 OR recipient = $1`,
+		`DELETE FROM np_presence_data WHERE account = $1`,
 	} {
 		tag, err := tx.Exec(ctx, q, a)
 		if err != nil {
@@ -192,6 +258,10 @@ func (m *MemoryInbox) Erase(_ context.Context, a string) (int, error) {
 			delete(m.ext, id)
 			n++
 		}
+	}
+	if _, ok := m.present[a]; ok {
+		delete(m.present, a)
+		n++
 	}
 	return n, nil
 }

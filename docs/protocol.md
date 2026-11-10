@@ -117,4 +117,4 @@ messages go to accepted friends only. Static RE only; see the private research n
 
 ## Scope
 
-Profiles, public avatar capabilities, canonical core friends, leased XMPP presence and, in Postgres, the chat delivery cursors and PS3 message attachments (the only local state). No local identity or relationship database; profile and XMPP authentication verify np-account tickets and current core standing.
+Profiles, public avatar capabilities, canonical core friends, leased XMPP presence and, in Postgres, the chat delivery cursors, PS3 message attachments and the presence data of online consoles (`np_presence_data`: the game's presence children, shown again to friends; the only local state). No local identity or relationship database; profile and XMPP authentication verify np-account tickets and current core standing.

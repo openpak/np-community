@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.10 - 2026-11-10
+
+- Game presence data reaches friends (prds#177, prds#163, Minecraft: PlayStation 3 Edition hosting). The relay showed a friend only the name and a status line synthesized from the core's presence, so a friend could see someone online but never the world: the game's presence data (Minecraft 01.84: a 56-byte room blob, room id, server id, net version) travels in the console's own `<presence>` children and was dropped. An available presence now stores its children (except the console's own `profile` `<x>` and `<status>`, which the relay writes itself; capped at 4 KiB) in Postgres `np_presence_data` (new table, kept like message attachments: the core's presence has no field for it), and each online friend's presence is sent with those children appended, resent when they change. Removed on unavailable, disconnect and account erasure; rows older than two days are purged at start. The stanza layout of a real console is not captured yet, so the children are relayed verbatim; `NP presence set` logs their element names and byte count. Needs `NP_DATABASE_URL` (already required).
+- Discovery for NPWR05636_00 is configuration: add it to `NP_MATCHING_AGENT_TITLES` (a test pins the answer).
+
 ## 0.4.9 - 2026-11-10
 
 - RT stream: bare `<iq type="result"/>` and `type="error"` stanzas (no netinfo/udpp2p `<query>` child) addressed to another connected console are now forwarded too. Real PS3 firmware acks udpp2p offers with bare results and only starts NP signaling probes after the ack of its own offer, so PS3-to-PS3 signaling never worked through 0.4.8 (prds#145). Results/errors that match no connected console still fall through to the server handlers.
