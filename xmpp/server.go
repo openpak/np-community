@@ -221,7 +221,9 @@ func (c *client) authFailure() { c.send(`<failure xmlns="` + saslNS + `"><not-au
 // whether the stanza was handled: an unaddressed or server-local stanza falls through to the handlers.
 func (c *client) forwardSignaling(n node) bool {
 	to := n.attr("to")
-	if to == "" || (n.child(netinfoNS, "query") == nil && n.child(udpp2pNS, "query") == nil) {
+	// Bare result/error acks (real firmware acks udpp2p offers without a query child) route like queries.
+	kind := n.attr("type")
+	if to == "" || (kind != "result" && kind != "error" && n.child(netinfoNS, "query") == nil && n.child(udpp2pNS, "query") == nil) {
 		return false
 	}
 	c.s.mu.Lock()

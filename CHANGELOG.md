@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.9 - 2026-11-10
+
+- RT stream: bare `<iq type="result"/>` and `type="error"` stanzas (no netinfo/udpp2p `<query>` child) addressed to another connected console are now forwarded too. Real PS3 firmware acks udpp2p offers with bare results and only starts NP signaling probes after the ack of its own offer, so PS3-to-PS3 signaling never worked through 0.4.8 (prds#145). Results/errors that match no connected console still fall through to the server handlers.
+
 ## 0.4.8 - 2026-11-07
 
 - RT stream: NP signaling stanzas (`http://playstation.net/np/rt/netinfo`, `http://playstation.net/np/rt/udpp2p`, any iq type including result/error) addressed to another connected console are forwarded to it with the sender's JID in `from=`. Before, peer signaling got `service-unavailable`, so `sceNpSignaling` activation between consoles could never start (Terraria cross-play relay, prds#145).

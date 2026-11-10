@@ -413,6 +413,17 @@ func TestSignalingForwardedBetweenClients(t *testing.T) {
 	if back.attr("type") != "result" || !strings.HasPrefix(back.attr("from"), aliceID+"@") {
 		t.Fatalf("result stanza: %+v", back)
 	}
+	// Real firmware acks with a bare result (no query child) and bare errors; both must route too.
+	for _, kind := range []string{"result", "error"} {
+		ack := `<iq type="` + kind + `" id="bare-` + kind + `" to="` + bobID + `@us.us.np.playstation.net/ps3"/>`
+		if _, e := aliceConn.Write([]byte(ack)); e != nil {
+			t.Fatal(e)
+		}
+		got := waitIQ(bobDec, "bare-"+kind)
+		if got.attr("type") != kind || !strings.HasPrefix(got.attr("from"), aliceID+"@") {
+			t.Fatalf("bare %s: %+v", kind, got)
+		}
+	}
 }
 
 func TestDisconnectClosesOnlyThatAccountsStreams(t *testing.T) {
