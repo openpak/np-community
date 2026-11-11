@@ -25,6 +25,8 @@ type Server struct {
 	PollInterval      time.Duration
 	KeepAliveInterval time.Duration
 	mu                sync.Mutex
+	bridge            bridgeState
+	presLogged        sync.Map // accounts whose presence XML was logged once
 	clients           map[*client]struct{}
 	locks             accountLocks
 }
@@ -243,6 +245,7 @@ func (c *client) forwardSignaling(n node) bool {
 	}
 	c.s.mu.Unlock()
 	if peer == nil {
+		c.s.recordSignal(c, n, to) // toward a bridged host (bridge.go): kept and logged in full; the stanza is then handled as before
 		return false
 	}
 	out := n
@@ -479,6 +482,13 @@ func (c *client) onPresence(ctx context.Context, n node) error {
 		}
 	}
 	c.s.Log.Info("NP presence set", "account", c.id.AccountID, "online_id", c.id.OnlineID, "children", presenceNames(n.Children), "data_bytes", len(data))
+	if data != "" {
+		// the first presence data of each account per process, in full: the stanza layout of a real console is not captured yet and the
+		// bridge builds its own presence from it (bridge.go, bridgeDataNS)
+		if _, seen := c.s.presLogged.LoadOrStore(c.id.AccountID, true); !seen {
+			c.s.Log.Info("NP presence xml", "account", c.id.AccountID, "xml", data)
+		}
+	}
 	return c.refresh(ctx)
 }
 func (c *client) rosterReply(ctx context.Context, n node) error {
@@ -549,6 +559,7 @@ func (c *client) refresh(ctx context.Context) error {
 			return e
 		}
 	}
+	data = c.s.bridgedXML(data, onlineIDs) // games hosted on other consoles, for accounts whose own console shows none
 	next := map[string]community.Friend{}
 	for _, f := range friends {
 		next[f.AccountID] = f

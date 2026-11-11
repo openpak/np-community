@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.11 - 2026-11-11
+
+- Bridge routes for Minecraft cross-play (prds#177, common/minecraft docs/session-mapping.md), bearer `NP_BRIDGE_KEY` (off without it):
+  `PUT/DELETE /internal/bridge/presence/{account}` keep the game presence (the 56-byte blob, or raw XML children) of a player hosting on another
+  console, shown to the friends who see the account online, in memory with a 90 s lease the directory renews; a real console's own stored presence
+  data wins while it has any. `GET /internal/bridge/signaling?after=N` returns the NP signaling stanzas addressed to a bridged host's JID, which no
+  console holds, in full (also logged as `NP signaling toward a bridged host`; the stanza is handled as before). The element that wraps the blob is a
+  guess until a real console's presence stanza is seen: the first presence data of each account per process is now logged in full (`NP presence xml`).
+
 ## 0.4.10 - 2026-11-10
 
 - Game presence data reaches friends (prds#177, prds#163, Minecraft: PlayStation 3 Edition hosting). The relay showed a friend only the name and a status line synthesized from the core's presence, so a friend could see someone online but never the world: the game's presence data (Minecraft 01.84: a 56-byte room blob, room id, server id, net version) travels in the console's own `<presence>` children and was dropped. An available presence now stores its children (except the console's own `profile` `<x>` and `<status>`, which the relay writes itself; capped at 4 KiB) in Postgres `np_presence_data` (new table, kept like message attachments: the core's presence has no field for it), and each online friend's presence is sent with those children appended, resent when they change. Removed on unavailable, disconnect and account erasure; rows older than two days are purged at start. The stanza layout of a real console is not captured yet, so the children are relayed verbatim; `NP presence set` logs their element names and byte count. Needs `NP_DATABASE_URL` (already required).

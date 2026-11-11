@@ -145,6 +145,10 @@ func run() error {
 	}
 	mux := http.NewServeMux()
 	svc.Register(mux)
+	if os.Getenv("NP_BRIDGE_KEY") != "" {
+		xs.RegisterBridge(mux)
+		slog.Info("bridge routes on (NP_BRIDGE_KEY)")
+	}
 	nphttp.Health(mux)
 	err = nphttp.Run(ctx, mux, nphttp.Env("NP_HTTP_ADDR", ":8003"), os.Getenv("NP_TLS_ADDR"), front)
 	stop()
