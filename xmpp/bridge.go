@@ -4,17 +4,20 @@ package xmpp
 // this relay, but their PS3 friends must see the game, and a PS3 that tries to reach the host sends NP signaling toward a JID nobody holds.
 // common/minecraft's session directory uses three routes (bearer NP_BRIDGE_KEY):
 //
-//	PUT    /internal/bridge/presence/{account}  {game, title, data (hex, the 56-byte presence blob) or children (raw XML)}: the host's game
-//	                                           presence, shown to every friend who sees the account online, for 90 s per PUT
+//	PUT    /internal/bridge/presence/{account}  {game, title, data (hex, the 56-byte presence blob; optional product, name, text) or children
+//	                                           (raw XML)}: the host's game presence, shown to every friend who sees the account online, for
+//	                                           90 s per PUT; viewers already online get it at once when it changes
 //	DELETE /internal/bridge/presence/{account}  take it back
 //	GET    /internal/bridge/signaling?after=N   the signaling stanzas addressed to a bridged host, in full
 //
 // Bridged presence lives in memory with a lease (the directory renews it every 30 s), apart from the presence data a real console stores in
-// Postgres: a real console signed in on the same account keeps its own, and wins while it has any.
+// Postgres. A real console signed in on the same account wins only while it is itself hosting (its presence carries an ext element, the game
+// data); its plain sign-in presence (mode=game, no data) does not hide the bridged game.
 
 import (
 	"context"
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
@@ -29,9 +32,46 @@ import (
 	"openpak/np-community/community"
 )
 
-// bridgeDataNS wraps the blob when the caller gives only bytes. GUESS: a real console's presence stanza is not captured (the relay stores its
-// children verbatim); the first real hosting after v0.4.11 logs it ("NP presence xml"), and this constant is then replaced by what it shows.
-const bridgeDataNS = "http://playstation.net/np/rt/presence-data"
+// Namespaces and values of a real PS3 Minecraft hosting presence. Proof: the 2026-11-11 stanzas np-community relayed from the owner's real PS3
+// (scratch/ps3-signaling-2026-11-09/mc1.log, mc2.log: stanzatype, ext with the blob inline as base64, presence mode=game with objectId,
+// localName, localLang, gameSpecified) and the sign-in presence logged at 15:55:04 (discovery-test-1111.log). GUESSED: the product id of
+// other regions (only the EU NPEB01899_00 is known), the gameSpecified text (the real one read "Playing Alone - Enjoying the view!" with a lone
+// host; what it says with several players is unknown), localLang (18 in both captures).
+const (
+	nsStanza  = "http://playstation.net/np/rt/stanzatype"
+	nsExt     = "http://playstation.net/np/rt/ext"
+	nsPresent = "http://playstation.net/np/rt/presence"
+
+	defProduct = "NPEB01899_00"
+	defName    = "Minecraft: PlayStation®3 Edition"
+	defText    = "Playing Alone - Enjoying the view!"
+	defLang    = "18"
+)
+
+// hostingChildren is the presence a real console sets while hosting, around the game's blob, in the form the relay stores and forwards
+// (the children of <presence> except profile and status, each element repeating its namespace).
+func hostingChildren(comm string, blob []byte, product, name, text string) string {
+	if product == "" {
+		product = defProduct
+	}
+	if name == "" {
+		name = defName
+	}
+	if text == "" {
+		text = defText
+	}
+	el := func(ns, local, body string) string {
+		return `<` + local + ` xmlns=` + attr(ns) + `>` + escaped(body) + `</` + local + `>`
+	}
+	return `<x xmlns=` + attr(nsStanza) + `></x>` +
+		`<x xmlns=` + attr(nsExt) + ` context=` + attr(comm) + `>` + el(nsExt, "origin", comm) +
+		`<data xmlns=` + attr(nsExt) + ` inline="base64">` + base64.StdEncoding.EncodeToString(blob) + `</data></x>` +
+		`<x xmlns=` + attr(nsPresent) + `>` + el(nsPresent, "mode", "game") + el(nsPresent, "objectId", product) + el(nsPresent, "localName", name) +
+		el(nsPresent, "localLang", defLang) + el(nsPresent, "gameSpecified", text) + `</x>`
+}
+
+// hasGameData reports whether a stored real presence carries the game's data blob (a real console that is hosting).
+func hasGameData(xml string) bool { return strings.Contains(xml, `xmlns="`+nsExt+`"`) }
 
 const bridgeLease = 90 * time.Second
 
@@ -68,7 +108,7 @@ func (s *Server) bridgedXML(data map[string]string, ids []string) map[string]str
 	defer s.bridge.mu.Unlock()
 	now := time.Now()
 	for _, id := range ids {
-		if h, ok := s.bridge.hosts[id]; ok && now.Before(h.until) && data[id] == "" {
+		if h, ok := s.bridge.hosts[id]; ok && now.Before(h.until) && !hasGameData(data[id]) {
 			if data == nil {
 				data = map[string]string{}
 			}
@@ -137,9 +177,14 @@ func wellFormed(s string) bool {
 func (s *Server) RegisterBridge(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /internal/bridge/presence/{account}", bridgeAuthed(s.bridgePresencePut))
 	mux.HandleFunc("DELETE /internal/bridge/presence/{account}", bridgeAuthed(func(w http.ResponseWriter, r *http.Request) {
+		acct := strings.ToLower(r.PathValue("account"))
 		s.bridge.mu.Lock()
-		delete(s.bridge.hosts, strings.ToLower(r.PathValue("account")))
+		_, had := s.bridge.hosts[acct]
+		delete(s.bridge.hosts, acct)
 		s.bridge.mu.Unlock()
+		if had {
+			s.pushAll()
+		}
 		w.Write([]byte("ok\n"))
 	}))
 	mux.HandleFunc("GET /internal/bridge/signaling", bridgeAuthed(func(w http.ResponseWriter, r *http.Request) {
@@ -163,6 +208,9 @@ func (s *Server) bridgePresencePut(w http.ResponseWriter, r *http.Request) {
 		Title    string `json:"title"`
 		Data     string `json:"data"`
 		Children string `json:"children"`
+		Product  string `json:"product"` // objectId of the game's presence (default: the EU NPEB01899_00)
+		Name     string `json:"name"`
+		Text     string `json:"text"` // gameSpecified
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16384)).Decode(&q); err != nil || !accountRe.MatchString(account) {
 		http.Error(w, "bad request", http.StatusBadRequest)
@@ -175,7 +223,7 @@ func (s *Server) bridgePresencePut(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "want data (hex) or children (XML)", http.StatusBadRequest)
 			return
 		}
-		body = `<x xmlns="` + bridgeDataNS + `" title=` + attr(q.Title) + `>` + hex.EncodeToString(blob) + `</x>`
+		body = hostingChildren(q.Title, blob, q.Product, q.Name, q.Text)
 	}
 	if len(body) > maxPresenceData || !wellFormed(body) {
 		http.Error(w, "presence children: well-formed XML up to 4 KiB", http.StatusBadRequest)
@@ -198,7 +246,30 @@ func (s *Server) bridgePresencePut(w http.ResponseWriter, r *http.Request) {
 	if s.bridge.hosts == nil {
 		s.bridge.hosts = map[string]bridgedHost{}
 	}
+	changed := s.bridge.hosts[account].xml != body
 	s.bridge.hosts[account] = bridgedHost{game: q.Game, xml: body, online: link.OnlineID, account: account, jid: community.JID(link.OnlineID, acc.Country), until: time.Now().Add(bridgeLease)}
 	s.bridge.mu.Unlock()
+	if changed {
+		s.pushAll() // viewers already online see the game now, not at their next poll
+	}
 	w.Write([]byte("ok\n"))
+}
+
+// pushAll refreshes every signed-in stream now (each one resends only what changed for it).
+func (s *Server) pushAll() {
+	s.mu.Lock()
+	cs := make([]*client, 0, len(s.clients))
+	for c := range s.clients {
+		cs = append(cs, c)
+	}
+	s.mu.Unlock()
+	for _, c := range cs {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if e := c.refresh(ctx); e != nil {
+				s.Log.Warn("NP bridged presence push failed", "online_id", c.id.OnlineID, "error", e)
+			}
+		}()
+	}
 }

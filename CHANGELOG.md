@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.12 - 2026-11-11
+
+- Bridged presence is the real thing (prds#177): the first real-console test showed PS3 friends the host's ordinary "Online on Wii U" only. The
+  presence a bridged host gets is now built in the form of the stanza the owner's real PS3 sent while hosting Minecraft (2026-11-11
+  mc1.log): `stanzatype`, an `ext` element (`context`/`origin` = the communication id, the 56-byte blob as `data inline="base64"`) and the
+  `presence` element (`mode` game, `objectId` NPEB01899_00, `localName`, `localLang` 18, `gameSpecified`); a test feeds that real stanza through the relay's
+  own parser and requires the bridged children to be identical. PUT also takes optional `product`, `name` and `text`. Guessed: the object id of other
+  regions and the `gameSpecified` text with several players.
+- Selection: the bridged presence is shown unless the account's own console presence carries game data (an `ext` element, i.e. it is
+  hosting itself); the plain sign-in presence a console stores (mode=game, no data) no longer hides it.
+- A PUT with new content and a DELETE refresh every signed-in stream at once (no waiting for the 10 s poll); a viewer who signs in later gets it
+  with the roster as before. Tests: an online viewer receives it on the PUT with the poll at 30 s, and loses it on the DELETE.
+- Logging: every presence a console sets is logged in full (`NP presence xml`: all children, plus `blobs_hex` with each base64 data blob as hex), not
+  once per account, so the next real hosting session gives the exact stanza.
+
 ## 0.4.11 - 2026-11-11
 
 - Bridge routes for Minecraft cross-play (prds#177, common/minecraft docs/session-mapping.md), bearer `NP_BRIDGE_KEY` (off without it):

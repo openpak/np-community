@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -26,7 +27,6 @@ type Server struct {
 	KeepAliveInterval time.Duration
 	mu                sync.Mutex
 	bridge            bridgeState
-	presLogged        sync.Map // accounts whose presence XML was logged once
 	clients           map[*client]struct{}
 	locks             accountLocks
 }
@@ -482,13 +482,13 @@ func (c *client) onPresence(ctx context.Context, n node) error {
 		}
 	}
 	c.s.Log.Info("NP presence set", "account", c.id.AccountID, "online_id", c.id.OnlineID, "children", presenceNames(n.Children), "data_bytes", len(data))
-	if data != "" {
-		// the first presence data of each account per process, in full: the stanza layout of a real console is not captured yet and the
-		// bridge builds its own presence from it (bridge.go, bridgeDataNS)
-		if _, seen := c.s.presLogged.LoadOrStore(c.id.AccountID, true); !seen {
-			c.s.Log.Info("NP presence xml", "account", c.id.AccountID, "xml", data)
-		}
+	// Every presence a console sets, in full, with each base64 data blob also as hex: a real console's hosting stanza is the template the
+	// bridge builds from (bridge.go hostingChildren).
+	var all strings.Builder
+	for _, ch := range n.Children {
+		all.WriteString(encoded(ch))
 	}
+	c.s.Log.Info("NP presence xml", "account", c.id.AccountID, "online_id", c.id.OnlineID, "xml", all.String(), "blobs_hex", blobsHex(n.Children))
 	return c.refresh(ctx)
 }
 func (c *client) rosterReply(ctx context.Context, n node) error {
@@ -684,6 +684,26 @@ func presenceNames(children []node) []string {
 	var out []string
 	for _, ch := range children {
 		out = append(out, ch.Name.Space+" "+ch.Name.Local)
+	}
+	return out
+}
+
+// blobsHex lists the hex of every base64 inline data element of a presence (the game's blob), for the log.
+func blobsHex(children []node) []string {
+	var out []string
+	var walk func(n node)
+	walk = func(n node) {
+		if n.Name.Local == "data" && n.attr("inline") == "base64" {
+			if raw, e := base64.StdEncoding.DecodeString(strings.TrimSpace(n.Text)); e == nil {
+				out = append(out, hex.EncodeToString(raw))
+			}
+		}
+		for _, ch := range n.Children {
+			walk(ch)
+		}
+	}
+	for _, ch := range children {
+		walk(ch)
 	}
 	return out
 }
