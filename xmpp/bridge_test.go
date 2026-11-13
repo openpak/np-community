@@ -237,3 +237,51 @@ func TestBridgedPresencePushedToOnlineViewer(t *testing.T) {
 		t.Fatalf("game still shown after it ended: %s", encoded(p))
 	}
 }
+
+// A PS3 that joins a bridged game signals to the NpId in the owner's member entry: online id + <cc><cc>ps3, which the firmware turns into
+// <online id>@<cc>.<cc>.np.playstation.net/ps3 (2026-11-13 15:49: PS3Test to SwitchTest@gb.gb.np.playstation.net/ps3). That is not the
+// community JID the presence uses, and nobody holds it: the relay must still recognise the host by it, keep the stanza for the directory,
+// and hold it (handled, no iq error back), or the joiner is told the host is unreachable and leaves.
+func TestSignalingToABridgedHostIsHeldNotBounced(t *testing.T) {
+	t.Setenv("NP_BRIDGE_KEY", "bk")
+	const key = "core-key-core-key-core-key-core-key"
+	const host = "aaaaaaaa-0000-0000-0000-00000000000b"
+	f := fakecore.New(key)
+	f.AddAccount(fakecore.Account{ID: host, DisplayName: "WiiUTest", Country: "GB"})
+	core, e := coreclient.Dial("passthrough:///core", key, f.Serve(t)...)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer core.Close()
+	s := &Server{Service: &community.Service{Core: core, Tickets: &ticket.Signer{}}, Log: slog.New(slog.NewTextHandler(nopWriter{}, nil))}
+	mux := http.NewServeMux()
+	s.RegisterBridge(mux)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("PUT", "/internal/bridge/presence/"+host, strings.NewReader(`{"game":"wiiu:13","title":"NPWR05636_00","data":"`+strings.Repeat("ab", 56)+`"}`))
+	r.Header.Set("Authorization", "Bearer bk")
+	mux.ServeHTTP(w, r)
+	if w.Code != 200 {
+		t.Fatalf("put: %d %s", w.Code, w.Body)
+	}
+	acct, _ := core.GetAccount(context.Background(), host)
+	link, _ := s.Service.EnsureLink(context.Background(), acct)
+	stanza := func(to, kind string) node {
+		return node{Name: xml.Name{Space: clientNS, Local: "iq"}, Attrs: []xml.Attr{{Name: xml.Name{Local: "type"}, Value: kind}, {Name: xml.Name{Local: "id"}, Value: "o1"}, {Name: xml.Name{Local: "to"}, Value: to}},
+			Children: []node{{Name: xml.Name{Space: udpp2pNS, Local: "query"}, Text: "offer"}}}
+	}
+	joiner := &client{s: s, jid: "PS3Test@pt.np.np.playstation.net/ps3"}
+	joiner.id.OnlineID, joiner.id.AccountID = "PS3Test", "acc-ps3"
+	for _, to := range []string{link.OnlineID + "@gb.gb.np.playstation.net/ps3", link.OnlineID + "@gb.np.community.playstation.net", link.OnlineID + "@gb.np.community.playstation.net/ps3"} {
+		for _, kind := range []string{"set", "result"} {
+			if !joiner.forwardSignaling(stanza(to, kind)) {
+				t.Fatalf("%s %s toward the bridged host was not held", kind, to)
+			}
+		}
+	}
+	if joiner.forwardSignaling(stanza("Somebody@gb.gb.np.playstation.net/ps3", "set")) {
+		t.Fatal("a stanza toward nobody was held")
+	}
+	if n := len(s.bridge.signals); n != 6 {
+		t.Fatalf("%d signals kept", n)
+	}
+}

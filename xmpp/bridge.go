@@ -131,11 +131,13 @@ func (s *Server) bridgedByJID(to string) (bridgedHost, bool) {
 	return bridgedHost{}, false
 }
 
-// recordSignal keeps and logs, in full, a signaling stanza addressed to a bridged host.
-func (s *Server) recordSignal(from *client, n node, to string) {
+// recordSignal keeps and logs, in full, a signaling stanza addressed to a bridged host, and reports whether it was one. The caller then
+// holds the stanza instead of bouncing it: an iq error toward the offline host would end the joiner's signalling at once (the firmware reads
+// it as the peer being unreachable and leaves the room), where silence lets it retry until the directory's transport leg answers.
+func (s *Server) recordSignal(from *client, n node, to string) bool {
 	h, ok := s.bridgedByJID(to)
 	if !ok {
-		return
+		return false
 	}
 	e := signalEvent{Game: h.game, Kind: "signal", Native: from.id.OnlineID, Account: from.id.AccountID,
 		Data: map[string]string{"to": to, "from": from.jid, "type": n.attr("type"), "id": n.attr("id"), "stanza": encoded(n)}}
@@ -148,6 +150,7 @@ func (s *Server) recordSignal(from *client, n node, to string) {
 	}
 	s.bridge.mu.Unlock()
 	s.Log.Info("NP signaling toward a bridged host", "seq", e.Seq, "game", e.Game, "from", e.Native, "to", to, "type", e.Data["type"], "stanza", e.Data["stanza"])
+	return true
 }
 
 func bridgeAuthed(h http.HandlerFunc) http.HandlerFunc {

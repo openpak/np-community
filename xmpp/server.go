@@ -245,8 +245,7 @@ func (c *client) forwardSignaling(n node) bool {
 	}
 	c.s.mu.Unlock()
 	if peer == nil {
-		c.s.recordSignal(c, n, to) // toward a bridged host (bridge.go): kept and logged in full; the stanza is then handled as before
-		return false
+		return c.s.recordSignal(c, n, to) // toward a bridged host (bridge.go): kept and logged in full, not answered; any other stanza falls through
 	}
 	out := n
 	out.Attrs = append([]xml.Attr(nil), n.Attrs...)

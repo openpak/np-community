@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.13 - 2026-11-13
+
+- Signalling toward a bridged host is held, not bounced (prds#177). A PS3 that joins a Wii U-hosted game signals to the NpId in the owner's
+  member entry (`WiiUTest` + `gbgbps3`), which the firmware addresses as `WiiUTest@gb.gb.np.playstation.net/ps3`. The relay already
+  recognised the host by its online id and kept the stanza for the directory (`GET /internal/bridge/signaling`), but then fell through to the
+  generic handler, which answers an unknown iq with `service-unavailable`; the firmware reads that as the peer being unreachable and the
+  joiner leaves the room. A stanza toward a live bridged host is now handled (kept, logged in full, no reply), so the joiner retries until the
+  directory's transport leg answers. A stanza toward anybody else falls through as before. Test: `TestSignalingToABridgedHostIsHeldNotBounced`
+  (the community JID with and without resource, and the `<cc>.<cc>.np.playstation.net/ps3` form the PS3 uses, `set` and `result`).
+
 ## 0.4.12 - 2026-11-11
 
 - Bridged presence is the real thing (prds#177): the first real-console test showed PS3 friends the host's ordinary "Online on Wii U" only. The
